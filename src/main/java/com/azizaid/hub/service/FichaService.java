@@ -4,23 +4,30 @@ import com.azizaid.hub.dto.request.FichaRequestDTO;
 import com.azizaid.hub.dto.response.FichaResponseDTO;
 import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.Ficha;
+import com.azizaid.hub.model.TipoAcompanhamento;
 import com.azizaid.hub.model.enums.StatusFicha;
 import com.azizaid.hub.repository.FichaRepository;
+import com.azizaid.hub.repository.TipoAcompanhamentoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class FichaService {
 
     private final FichaRepository fichaRepository;
     private final EntityAuditService entityAuditService;
+    private final TipoAcompanhamentoRepository tipoAcompanhamentoRepository;
 
-    public FichaService(FichaRepository fichaRepository, EntityAuditService entityAuditService) {
+    public FichaService(FichaRepository fichaRepository, EntityAuditService entityAuditService,
+                         TipoAcompanhamentoRepository tipoAcompanhamentoRepository) {
         this.fichaRepository = fichaRepository;
         this.entityAuditService = entityAuditService;
+        this.tipoAcompanhamentoRepository = tipoAcompanhamentoRepository;
     }
 
     @Transactional(readOnly = true)
@@ -108,6 +115,20 @@ public class FichaService {
         Ficha ficha = buscarEntidade(id);
         registrarEdicaoCrossUserSeAplicavel(ficha);
         ficha.setStatus(novoStatus);
+        return FichaResponseDTO.from(fichaRepository.save(ficha));
+    }
+
+    @Transactional
+    public FichaResponseDTO atribuirTiposAcompanhamento(Long fichaId, List<Long> tipoIds) {
+        Ficha ficha = buscarEntidade(fichaId);
+        registrarEdicaoCrossUserSeAplicavel(ficha);
+
+        Set<TipoAcompanhamento> tipos = new HashSet<>(tipoAcompanhamentoRepository.findAllById(tipoIds));
+        if (tipos.size() != new HashSet<>(tipoIds).size()) {
+            throw new IllegalArgumentException("Um ou mais tipos de acompanhamento informados não existem");
+        }
+
+        ficha.setTiposAcompanhamento(tipos);
         return FichaResponseDTO.from(fichaRepository.save(ficha));
     }
 

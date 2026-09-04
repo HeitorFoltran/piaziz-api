@@ -121,6 +121,15 @@ public class Ficha {
     @Column(name = "ultimo_editor_id")
     private Long ultimoEditorId;
 
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "ficha_tipo_acompanhamento",
+            joinColumns = @JoinColumn(name = "ficha_id"),
+            inverseJoinColumns = @JoinColumn(name = "tipo_acompanhamento_id")
+    )
+    @Builder.Default
+    private Set<TipoAcompanhamento> tiposAcompanhamento = new HashSet<>();
+
     @OneToMany(mappedBy = "ficha", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("dataEncaminhamento DESC, id DESC")
     @Builder.Default
