@@ -41,7 +41,7 @@ CREATE TABLE ficha (
     data_atualizacao     TIMESTAMP    NOT NULL,
     status               VARCHAR(10)  NOT NULL
         CONSTRAINT ck_ficha_status
-        CHECK (status IN ('ATIVO', 'INATIVO')),
+        CHECK (status IN ('ATIVO', 'PAUSADO', 'ENCERRADO')),
     criado_por_id        BIGINT,
     ultimo_editor_id     BIGINT
 );

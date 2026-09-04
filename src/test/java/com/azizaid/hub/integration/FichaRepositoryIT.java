@@ -23,12 +23,14 @@ class FichaRepositoryIT extends PostgresTestContainerConfig {
 
     @Test
     void criar_duasFichasMesmoCpf_segundaFalhaEPrimeiraPersistida() {
+        long totalAntes = fichaRepository.count();
+
         fichaService.criar(construirDtoValido("98765432100"));
 
         assertThrows(IllegalArgumentException.class,
                 () -> fichaService.criar(construirDtoValido("98765432100")));
 
-        assertThat(fichaRepository.count()).isEqualTo(1);
+        assertThat(fichaRepository.count()).isEqualTo(totalAntes + 1);
         assertThat(fichaRepository.existsByCpf("98765432100")).isTrue();
     }
 }
