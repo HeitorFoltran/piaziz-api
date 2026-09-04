@@ -2,7 +2,8 @@ package com.azizaid.hub.model.enums;
 
 public enum StatusFicha {
     ATIVO("Ativo"),
-    INATIVO("Inativo");
+    PAUSADO("Pausado"),
+    ENCERRADO("Encerrado");
 
     private final String label;
 

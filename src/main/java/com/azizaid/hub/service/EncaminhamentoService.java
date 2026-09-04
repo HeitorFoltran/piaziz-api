@@ -5,6 +5,7 @@ import com.azizaid.hub.dto.response.EncaminhamentoResponseDTO;
 import com.azizaid.hub.model.Encaminhamento;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.model.Servico;
+import com.azizaid.hub.model.enums.StatusFicha;
 import com.azizaid.hub.repository.EncaminhamentoRepository;
 import com.azizaid.hub.repository.ServicoRepository;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,11 @@ public class EncaminhamentoService {
     @Transactional
     public EncaminhamentoResponseDTO criar(Long fichaId, EncaminhamentoRequestDTO dto) {
         Ficha ficha = fichaService.buscarEntidade(fichaId);
+
+        if (ficha.getStatus() == StatusFicha.ENCERRADO) {
+            throw new IllegalArgumentException(
+                    "Não é possível registrar encaminhamento em um acompanhamento encerrado");
+        }
 
         Servico servico = servicoRepository.findById(dto.servicoId())
                 .orElseThrow(() -> new RuntimeException("Serviço não encontrado: " + dto.servicoId()));
