@@ -8,6 +8,7 @@ import com.azizaid.hub.model.TipoAcompanhamento;
 import com.azizaid.hub.model.enums.StatusFicha;
 import com.azizaid.hub.repository.FichaRepository;
 import com.azizaid.hub.repository.TipoAcompanhamentoRepository;
+import com.azizaid.hub.util.CpfUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +52,9 @@ public class FichaService {
 
     @Transactional
     public FichaResponseDTO criar(FichaRequestDTO dto) {
+        if (!CpfUtils.isValido(dto.cpf())) {
+            throw new IllegalArgumentException("CPF inválido");
+        }
         if (fichaRepository.existsByCpf(dto.cpf())) {
             throw new IllegalArgumentException("Já existe uma ficha cadastrada com este CPF");
         }
@@ -86,6 +90,9 @@ public class FichaService {
     @Transactional
     public FichaResponseDTO atualizar(Long id, FichaRequestDTO dto) {
         Ficha ficha = buscarEntidade(id);
+        if (!CpfUtils.isValido(dto.cpf())) {
+            throw new IllegalArgumentException("CPF inválido");
+        }
         registrarEdicaoCrossUserSeAplicavel(ficha);
         ficha.setNome(dto.nome());
         ficha.setCpf(dto.cpf());

@@ -38,7 +38,7 @@ class FichaTipoAcompanhamentoSystemTest extends PostgresTestContainerConfig {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
 
-        FichaRequestDTO fichaDto = construirDtoValido("66677788899");
+        FichaRequestDTO fichaDto = construirDtoValido("66677788830");
         ResponseEntity<FichaResponseDTO> fichaCriada = restTemplate.postForEntity(
                 "/api/fichas", new HttpEntity<>(fichaDto, headers), FichaResponseDTO.class);
         assertThat(fichaCriada.getStatusCode()).isEqualTo(HttpStatus.CREATED);

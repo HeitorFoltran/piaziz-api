@@ -31,7 +31,7 @@ class FichaSystemTest extends PostgresTestContainerConfig {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
 
-        FichaRequestDTO dto = construirDtoValido("11122233344");
+        FichaRequestDTO dto = construirDtoValido("11122233396");
         HttpEntity<FichaRequestDTO> requisicao = new HttpEntity<>(dto, headers);
 
         ResponseEntity<String> primeira = restTemplate.postForEntity("/api/fichas", requisicao, String.class);
