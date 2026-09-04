@@ -1,0 +1,20 @@
+target/
+*.class
+
+# IntelliJ
+.idea/
+*.iml
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# Credenciais locais
+.env
