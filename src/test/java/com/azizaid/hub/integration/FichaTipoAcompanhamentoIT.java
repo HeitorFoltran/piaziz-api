@@ -33,7 +33,7 @@ class FichaTipoAcompanhamentoIT extends PostgresTestContainerConfig {
 
     @Test
     void atribuirTiposAcompanhamento_substituiConjuntoDeTags() {
-        Long fichaId = fichaService.criar(construirDtoValido("11223344556")).id();
+        Long fichaId = fichaService.criar(construirDtoValido("11223344517")).id();
 
         Long tipo1Id = tipoAcompanhamentoService.criar(new TipoAcompanhamentoRequestDTO("Jurídico IT")).id();
         Long tipo2Id = tipoAcompanhamentoService.criar(new TipoAcompanhamentoRequestDTO("Psicológico IT")).id();

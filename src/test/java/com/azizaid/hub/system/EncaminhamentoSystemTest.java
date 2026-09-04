@@ -39,7 +39,7 @@ class EncaminhamentoSystemTest extends PostgresTestContainerConfig {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
 
-        FichaRequestDTO fichaDto = construirDtoValido("99988877766");
+        FichaRequestDTO fichaDto = construirDtoValido("99988877714");
         HttpEntity<FichaRequestDTO> criarFichaRequisicao = new HttpEntity<>(fichaDto, headers);
         ResponseEntity<FichaResponseDTO> fichaCriada =
                 restTemplate.postForEntity("/api/fichas", criarFichaRequisicao, FichaResponseDTO.class);
