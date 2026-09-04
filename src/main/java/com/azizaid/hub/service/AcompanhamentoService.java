@@ -1,6 +1,7 @@
 package com.azizaid.hub.service;
 
 import com.azizaid.hub.dto.response.AcompanhamentoResumoDTO;
+import com.azizaid.hub.dto.response.TipoAcompanhamentoResponseDTO;
 import com.azizaid.hub.model.Encaminhamento;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.repository.EncaminhamentoRepository;
@@ -43,6 +44,9 @@ public class AcompanhamentoService {
                 continue;
             }
 
+            List<TipoAcompanhamentoResponseDTO> tipos = ficha.getTiposAcompanhamento() == null ? List.of()
+                    : ficha.getTiposAcompanhamento().stream().map(TipoAcompanhamentoResponseDTO::from).toList();
+
             resultado.add(new AcompanhamentoResumoDTO(
                     ficha.getId(),
                     ficha.getNumeroCaso(),
@@ -53,7 +57,8 @@ public class AcompanhamentoService {
                     servicoIdRecente != null ? String.valueOf(servicoIdRecente) : null,
                     ficha.getStatus() != null ? ficha.getStatus().name() : null,
                     ficha.getDataAtualizacao(),
-                    ficha.getDataCriacao()
+                    ficha.getDataCriacao(),
+                    tipos
             ));
         }
 

@@ -37,7 +37,8 @@ public record FichaResponseDTO(
         List<InteracaoResponseDTO> interacoes,
         AvaliacaoSocioeconomicaResponseDTO avaliacaoSocioeconomica,
         HistoricoAtendimentoResponseDTO historicoAtendimento,
-        AcolhimentoEquipeResponseDTO acolhimentoEquipe
+        AcolhimentoEquipeResponseDTO acolhimentoEquipe,
+        List<TipoAcompanhamentoResponseDTO> tiposAcompanhamento
 ) {
     public static FichaResponseDTO from(Ficha f) {
         List<EncaminhamentoResponseDTO> enc = f.getEncaminhamentos() == null ? List.of()
@@ -48,6 +49,8 @@ public record FichaResponseDTO(
                 : f.getVagasNecessarias().stream().map(VagaNecessaria::name).collect(Collectors.toSet());
         Set<String> necessidades = f.getNecessidadesImediatas() == null ? Set.of()
                 : f.getNecessidadesImediatas().stream().map(NecessidadeImediata::name).collect(Collectors.toSet());
+        List<TipoAcompanhamentoResponseDTO> tipos = f.getTiposAcompanhamento() == null ? List.of()
+                : f.getTiposAcompanhamento().stream().map(TipoAcompanhamentoResponseDTO::from).toList();
         return new FichaResponseDTO(
                 f.getId(),
                 f.getCodigoFicha(),
@@ -76,7 +79,8 @@ public record FichaResponseDTO(
                 inter,
                 AvaliacaoSocioeconomicaResponseDTO.from(f.getAvaliacaoSocioeconomica()),
                 HistoricoAtendimentoResponseDTO.from(f.getHistoricoAtendimento()),
-                AcolhimentoEquipeResponseDTO.from(f.getAcolhimentoEquipe())
+                AcolhimentoEquipeResponseDTO.from(f.getAcolhimentoEquipe()),
+                tipos
         );
     }
 }

@@ -1,6 +1,7 @@
 package com.azizaid.hub.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record AcompanhamentoResumoDTO(
         Long id,
@@ -12,6 +13,7 @@ public record AcompanhamentoResumoDTO(
         String tipoEncaminhamento,
         String status,
         LocalDateTime dataAtualizacao,
-        LocalDateTime dataCriacao
+        LocalDateTime dataCriacao,
+        List<TipoAcompanhamentoResponseDTO> tiposAcompanhamento
 ) {
 }

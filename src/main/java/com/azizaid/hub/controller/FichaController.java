@@ -1,5 +1,6 @@
 package com.azizaid.hub.controller;
 
+import com.azizaid.hub.dto.request.AtribuirTiposAcompanhamentoRequestDTO;
 import com.azizaid.hub.dto.request.FichaRequestDTO;
 import com.azizaid.hub.dto.response.FichaResponseDTO;
 import com.azizaid.hub.model.enums.StatusFicha;
@@ -51,5 +52,12 @@ public class FichaController {
             @PathVariable Long id,
             @Valid @RequestBody FichaRequestDTO dto) {
         return fichaService.atualizar(id, dto);
+    }
+
+    @PutMapping("/{id}/tipos-acompanhamento")
+    public FichaResponseDTO atribuirTiposAcompanhamento(
+            @PathVariable Long id,
+            @RequestBody AtribuirTiposAcompanhamentoRequestDTO dto) {
+        return fichaService.atribuirTiposAcompanhamento(id, dto.tipoIds() != null ? dto.tipoIds() : List.of());
     }
 }
