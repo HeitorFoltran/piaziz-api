@@ -3,8 +3,8 @@ services:
     image: postgres:16
     environment:
       POSTGRES_DB: azizaid_hub
-      POSTGRES_USER: azizaid
-      POSTGRES_PASSWORD: azizaid_dev
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5433:5432"
     volumes:
@@ -12,7 +12,7 @@ services:
       - ./db/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
       - ./db/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U azizaid -d azizaid_hub"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d azizaid_hub"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -24,9 +24,9 @@ services:
         condition: service_healthy
     environment:
       DB_URL: jdbc:postgresql://db:5432/azizaid_hub
-      DB_USERNAME: azizaid
-      DB_PASSWORD: azizaid_dev
-      JWT_SECRET: docker-compose-dev-secret-nao-usar-em-producao
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "8081:8081"
 
