@@ -30,6 +30,7 @@ public class ProfissionalController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('DEV')")
     public ResponseEntity<ProfissionalResponseDTO> criar(@Valid @RequestBody ProfissionalRequestDTO dto) {
         ProfissionalResponseDTO criado = profissionalService.criar(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(criado);
