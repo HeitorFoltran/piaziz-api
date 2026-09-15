@@ -1,6 +1,7 @@
 package com.azizaid.hub.service;
 
 import com.azizaid.hub.dto.request.EncaminhamentoRequestDTO;
+import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.Encaminhamento;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.model.Servico;
@@ -76,6 +77,19 @@ class EncaminhamentoServiceTest {
         EncaminhamentoRequestDTO dto = construirEncaminhamentoDtoValido(2L);
 
         assertThrows(IllegalArgumentException.class, () -> encaminhamentoService.criar(1L, dto));
+
+        verify(encaminhamentoRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_comServicoInexistente_lancaRecursoNaoEncontrado() {
+        Ficha ficha = construirFichaComStatus(StatusFicha.ATIVO);
+        when(fichaService.buscarEntidade(1L)).thenReturn(ficha);
+        when(servicoRepository.findById(2L)).thenReturn(Optional.empty());
+
+        EncaminhamentoRequestDTO dto = construirEncaminhamentoDtoValido(2L);
+
+        assertThrows(RecursoNaoEncontradoException.class, () -> encaminhamentoService.criar(1L, dto));
 
         verify(encaminhamentoRepository, never()).save(any());
     }
