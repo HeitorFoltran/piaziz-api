@@ -47,6 +47,11 @@ public class EncaminhamentoService {
                     "Não é possível registrar encaminhamento em um acompanhamento encerrado");
         }
 
+        if (dto.dataRetorno() != null && dto.dataEncaminhamento() != null
+                && dto.dataRetorno().isBefore(dto.dataEncaminhamento())) {
+            throw new IllegalArgumentException("Data de retorno não pode ser anterior à data de encaminhamento");
+        }
+
         Servico servico = servicoRepository.findById(dto.servicoId())
                 .orElseThrow(() -> new RuntimeException("Serviço não encontrado: " + dto.servicoId()));
 
