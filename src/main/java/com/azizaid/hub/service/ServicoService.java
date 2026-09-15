@@ -2,6 +2,7 @@ package com.azizaid.hub.service;
 
 import com.azizaid.hub.dto.request.ServicoRequestDTO;
 import com.azizaid.hub.dto.response.ServicoResponseDTO;
+import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.Servico;
 import com.azizaid.hub.repository.ServicoRepository;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class ServicoService {
     @Transactional
     public ServicoResponseDTO atualizar(Long id, ServicoRequestDTO dto) {
         Servico servico = servicoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Serviço não encontrado: " + id));
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Serviço", id));
         servico.setNome(dto.nome());
         return ServicoResponseDTO.from(servicoRepository.save(servico));
     }

@@ -2,6 +2,7 @@ package com.azizaid.hub.service;
 
 import com.azizaid.hub.dto.request.EncaminhamentoRequestDTO;
 import com.azizaid.hub.dto.response.EncaminhamentoResponseDTO;
+import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.Encaminhamento;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.model.Servico;
@@ -53,7 +54,7 @@ public class EncaminhamentoService {
         }
 
         Servico servico = servicoRepository.findById(dto.servicoId())
-                .orElseThrow(() -> new RuntimeException("Serviço não encontrado: " + dto.servicoId()));
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Serviço", dto.servicoId()));
 
         Encaminhamento encaminhamento = new Encaminhamento();
         encaminhamento.setFicha(ficha);

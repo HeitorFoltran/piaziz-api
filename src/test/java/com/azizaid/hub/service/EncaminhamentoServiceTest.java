@@ -1,6 +1,7 @@
 package com.azizaid.hub.service;
 
 import com.azizaid.hub.dto.request.EncaminhamentoRequestDTO;
+import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.Encaminhamento;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.model.Servico;
