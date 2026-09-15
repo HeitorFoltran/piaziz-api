@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static com.azizaid.hub.support.EncaminhamentoTestFactory.construirEncaminhamentoDtoValido;
@@ -82,14 +83,16 @@ class EncaminhamentoServiceTest {
     }
 
     @Test
-    void criar_comServicoInexistente_lancaRecursoNaoEncontrado() {
+    void criar_comDataRetornoAnteriorADataEncaminhamento_lancaExcecaoENaoSalva() {
         Ficha ficha = construirFichaComStatus(StatusFicha.ATIVO);
         when(fichaService.buscarEntidade(1L)).thenReturn(ficha);
-        when(servicoRepository.findById(2L)).thenReturn(Optional.empty());
 
-        EncaminhamentoRequestDTO dto = construirEncaminhamentoDtoValido(2L);
+        EncaminhamentoRequestDTO dto = new EncaminhamentoRequestDTO(
+                2L, null, "Profissional Teste",
+                LocalDate.now(), LocalDate.now().minusDays(1),
+                "Encaminhamento de teste");
 
-        assertThrows(RecursoNaoEncontradoException.class, () -> encaminhamentoService.criar(1L, dto));
+        assertThrows(IllegalArgumentException.class, () -> encaminhamentoService.criar(1L, dto));
 
         verify(encaminhamentoRepository, never()).save(any());
     }

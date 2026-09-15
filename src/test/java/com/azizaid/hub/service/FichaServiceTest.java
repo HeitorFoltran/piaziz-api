@@ -44,11 +44,11 @@ class FichaServiceTest {
 
     @Test
     void criar_comCpfNovo_salvaFicha() {
-        when(fichaRepository.existsByCpf("12345678900")).thenReturn(false);
+        when(fichaRepository.existsByCpf("12345678909")).thenReturn(false);
         when(fichaRepository.buscarMaiorSequencialCodigo()).thenReturn(0);
         when(fichaRepository.save(any(Ficha.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        FichaRequestDTO dto = construirDtoValido("12345678900");
+        FichaRequestDTO dto = construirDtoValido("12345678909");
 
         fichaService.criar(dto);
 
@@ -57,8 +57,17 @@ class FichaServiceTest {
 
     @Test
     void criar_comCpfDuplicado_lancaExcecaoENaoSalva() {
-        when(fichaRepository.existsByCpf("12345678900")).thenReturn(true);
-        FichaRequestDTO dto = construirDtoValido("12345678900");
+        when(fichaRepository.existsByCpf("12345678909")).thenReturn(true);
+        FichaRequestDTO dto = construirDtoValido("12345678909");
+
+        assertThrows(IllegalArgumentException.class, () -> fichaService.criar(dto));
+
+        verify(fichaRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_comCpfInvalido_lancaExcecaoENaoSalva() {
+        FichaRequestDTO dto = construirDtoValido("11111111111");
 
         assertThrows(IllegalArgumentException.class, () -> fichaService.criar(dto));
 
