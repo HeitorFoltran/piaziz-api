@@ -192,13 +192,14 @@ INSERT INTO avaliacao_socioeconomica (
 
 INSERT INTO historico_atendimento (
     ficha_id, ja_procurou_servico, servico_procurado_qual_onde, em_fila_espera, fila_espera_qual,
-    ja_pediu_ajuda_justica_policia, justica_policia_qual, como_foi_atendimento, resolveu_situacao, reacao_agressor
+    ja_pediu_ajuda_justica_policia, justica_policia_qual, como_foi_atendimento, resolveu_situacao, reacao_agressor,
+    data_criacao
 ) VALUES
     ((SELECT id FROM ficha WHERE codigo_ficha = 'F-0001'), TRUE, 'CRAS do bairro, há 2 anos', FALSE, NULL,
         TRUE, 'Boletim de ocorrência registrado', 'Atendimento demorado, mas resolutivo.', TRUE,
-        'Ficou alterado, mas não voltou a procurá-la.'),
+        'Ficou alterado, mas não voltou a procurá-la.', CURRENT_TIMESTAMP - INTERVAL '3 weeks'),
     ((SELECT id FROM ficha WHERE codigo_ficha = 'F-0002'), FALSE, NULL, FALSE, NULL,
-        FALSE, NULL, NULL, NULL, NULL);
+        FALSE, NULL, NULL, NULL, NULL, NULL);
 
 INSERT INTO acolhimento_equipe (
     ficha_id, numero_processo_mpu, data_reuniao_acolhimento, servidor_responsavel,

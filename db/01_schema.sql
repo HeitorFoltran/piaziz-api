@@ -130,6 +130,7 @@ CREATE TABLE historico_atendimento (
     como_foi_atendimento            VARCHAR(1000),
     resolveu_situacao               BOOLEAN,
     reacao_agressor                 VARCHAR(500),
+    data_criacao                    TIMESTAMP,
     criado_por_id                   BIGINT,
     ultimo_editor_id                BIGINT,
     CONSTRAINT fk_historico_atendimento_ficha

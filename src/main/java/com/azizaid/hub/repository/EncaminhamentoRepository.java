@@ -28,4 +28,13 @@ public interface EncaminhamentoRepository extends JpaRepository<Encaminhamento, 
             ORDER BY COUNT(e) DESC
             """)
     List<Object[]> contarPorServico();
+
+    @Query(value = "SELECT MIN(data_encaminhamento) FROM encaminhamento WHERE data_encaminhamento IS NOT NULL",
+            nativeQuery = true)
+    Optional<LocalDate> findMinDataEncaminhamento();
+
+    @Query(value = "SELECT date_trunc(:unidade, data_encaminhamento) AS periodo, COUNT(*) AS total "
+            + "FROM encaminhamento WHERE data_encaminhamento IS NOT NULL GROUP BY periodo ORDER BY periodo",
+            nativeQuery = true)
+    List<Object[]> progressaoEncaminhamentos(@Param("unidade") String unidade);
 }
