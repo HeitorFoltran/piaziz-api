@@ -8,12 +8,10 @@ import com.azizaid.hub.dto.response.FichaPublicaStatusResponseDTO;
 import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.ConviteFicha;
 import com.azizaid.hub.model.FichaPendente;
-import com.azizaid.hub.model.FichaPublicaAuditLog;
 import com.azizaid.hub.model.enums.ResultadoFichaPublica;
 import com.azizaid.hub.model.enums.StatusConvite;
 import com.azizaid.hub.repository.ConviteFichaRepository;
 import com.azizaid.hub.repository.FichaPendenteRepository;
-import com.azizaid.hub.repository.FichaPublicaAuditLogRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,14 +35,14 @@ class FichaPublicaServiceTest {
     FichaPendenteRepository fichaPendenteRepository;
 
     @Mock
-    FichaPublicaAuditLogRepository auditLogRepository;
+    FichaPublicaAuditLogService auditLogService;
 
     FichaPublicaService fichaPublicaService;
 
     @BeforeEach
     void setUp() {
         fichaPublicaService = new FichaPublicaService(conviteTokenService, conviteFichaRepository,
-                fichaPendenteRepository, auditLogRepository);
+                fichaPendenteRepository, auditLogService);
     }
 
     @Test
@@ -78,8 +76,7 @@ class FichaPublicaServiceTest {
         assertThrows(RecursoNaoEncontradoException.class,
                 () -> fichaPublicaService.submeter("tok", dto, "127.0.0.1"));
 
-        verify(auditLogRepository).save(argThat(log ->
-                log.getResultado() == ResultadoFichaPublica.TOKEN_INVALIDO));
+        verify(auditLogService).registrar(null, "127.0.0.1", ResultadoFichaPublica.TOKEN_INVALIDO);
         verify(fichaPendenteRepository, never()).save(any());
     }
 
@@ -95,8 +92,7 @@ class FichaPublicaServiceTest {
 
         verify(fichaPendenteRepository).save(argThat((FichaPendente p) ->
                 p.getNome().equals("Maria") && p.getConviteId().equals(3L)));
-        verify(auditLogRepository).save(argThat((FichaPublicaAuditLog log) ->
-                log.getResultado() == ResultadoFichaPublica.SUBMETIDO && log.getConviteId().equals(3L)));
+        verify(auditLogService).registrar(3L, "127.0.0.1", ResultadoFichaPublica.SUBMETIDO);
     }
 
     @Test
@@ -110,8 +106,7 @@ class FichaPublicaServiceTest {
         assertThrows(RecursoNaoEncontradoException.class,
                 () -> fichaPublicaService.submeter("tok", dto, "127.0.0.1"));
 
-        verify(auditLogRepository).save(argThat((FichaPublicaAuditLog log) ->
-                log.getResultado() == ResultadoFichaPublica.TOKEN_JA_USADO));
+        verify(auditLogService).registrar(3L, "127.0.0.1", ResultadoFichaPublica.TOKEN_JA_USADO);
         verify(fichaPendenteRepository, never()).save(any());
     }
 }

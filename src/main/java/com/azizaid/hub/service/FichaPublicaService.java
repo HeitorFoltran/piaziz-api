@@ -8,13 +8,11 @@ import com.azizaid.hub.dto.response.FichaPublicaStatusResponseDTO;
 import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.ConviteFicha;
 import com.azizaid.hub.model.FichaPendente;
-import com.azizaid.hub.model.FichaPublicaAuditLog;
 import com.azizaid.hub.model.enums.ResultadoFichaPublica;
 import com.azizaid.hub.model.enums.StatusConvite;
 import com.azizaid.hub.model.enums.StatusFichaPendente;
 import com.azizaid.hub.repository.ConviteFichaRepository;
 import com.azizaid.hub.repository.FichaPendenteRepository;
-import com.azizaid.hub.repository.FichaPublicaAuditLogRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,16 +26,16 @@ public class FichaPublicaService {
     private final ConviteTokenService conviteTokenService;
     private final ConviteFichaRepository conviteFichaRepository;
     private final FichaPendenteRepository fichaPendenteRepository;
-    private final FichaPublicaAuditLogRepository auditLogRepository;
+    private final FichaPublicaAuditLogService auditLogService;
 
     public FichaPublicaService(ConviteTokenService conviteTokenService,
                                 ConviteFichaRepository conviteFichaRepository,
                                 FichaPendenteRepository fichaPendenteRepository,
-                                FichaPublicaAuditLogRepository auditLogRepository) {
+                                FichaPublicaAuditLogService auditLogService) {
         this.conviteTokenService = conviteTokenService;
         this.conviteFichaRepository = conviteFichaRepository;
         this.fichaPendenteRepository = fichaPendenteRepository;
-        this.auditLogRepository = auditLogRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -53,7 +51,7 @@ public class FichaPublicaService {
     public void submeter(String token, FichaPublicaRequestDTO dto, String ip) {
         ValidacaoTokenResult resultado = conviteTokenService.validar(token);
         if (!resultado.valido()) {
-            registrarAuditoria(null, ip, mapResultadoAudit(resultado.motivo()));
+            auditLogService.registrar(null, ip, mapResultadoAudit(resultado.motivo()));
             throw new RecursoNaoEncontradoException(MENSAGEM_LINK_INVALIDO);
         }
 
@@ -61,7 +59,7 @@ public class FichaPublicaService {
         int atualizados = conviteFichaRepository.marcarComoUsadoSeAtivo(
                 convite.getId(), StatusConvite.USADO, StatusConvite.ATIVO, LocalDateTime.now());
         if (atualizados == 0) {
-            registrarAuditoria(convite.getId(), ip, ResultadoFichaPublica.TOKEN_JA_USADO);
+            auditLogService.registrar(convite.getId(), ip, ResultadoFichaPublica.TOKEN_JA_USADO);
             throw new RecursoNaoEncontradoException(MENSAGEM_LINK_INVALIDO);
         }
 
@@ -76,15 +74,7 @@ public class FichaPublicaService {
         pendente.setStatus(StatusFichaPendente.PENDENTE);
         fichaPendenteRepository.save(pendente);
 
-        registrarAuditoria(convite.getId(), ip, ResultadoFichaPublica.SUBMETIDO);
-    }
-
-    private void registrarAuditoria(Long conviteId, String ip, ResultadoFichaPublica resultado) {
-        auditLogRepository.save(FichaPublicaAuditLog.builder()
-                .conviteId(conviteId)
-                .ip(ip)
-                .resultado(resultado)
-                .build());
+        auditLogService.registrar(convite.getId(), ip, ResultadoFichaPublica.SUBMETIDO);
     }
 
     private String mapMotivoPublico(MotivoTokenInvalido motivo) {

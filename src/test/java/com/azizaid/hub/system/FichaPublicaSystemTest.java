@@ -9,6 +9,8 @@ import com.azizaid.hub.dto.response.FichaPublicaStatusResponseDTO;
 import com.azizaid.hub.dto.response.FichaPublicaSubmissaoResponseDTO;
 import com.azizaid.hub.model.Profissional;
 import com.azizaid.hub.model.enums.PapelProfissional;
+import com.azizaid.hub.model.enums.ResultadoFichaPublica;
+import com.azizaid.hub.repository.FichaPublicaAuditLogRepository;
 import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,9 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
 
     @Autowired
     ProfissionalRepository profissionalRepository;
+
+    @Autowired
+    FichaPublicaAuditLogRepository fichaPublicaAuditLogRepository;
 
     private Profissional criarProfissional(PapelProfissional role, String email) {
         return profissionalRepository.save(Profissional.builder()
@@ -95,11 +100,17 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
     }
 
     @Test
-    void submeter_comTokenInvalido_retorna404() {
+    void submeter_comTokenInvalido_retorna404EPersisteAuditoriaMesmoComRollback() {
         FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO("Maria", "52998224725", null, null, null);
         ResponseEntity<String> resposta = restTemplate.postForEntity(
                 "/api/ficha-publica/{token}", dto, String.class, "token-que-nao-existe");
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+
+        boolean auditoriaPersistida = fichaPublicaAuditLogRepository.findAll().stream()
+                .anyMatch(log -> log.getResultado() == ResultadoFichaPublica.TOKEN_INVALIDO);
+        assertThat(auditoriaPersistida)
+                .as("auditoria de token inválido precisa persistir mesmo com a submissão lançando exceção depois")
+                .isTrue();
     }
 
     @Test
