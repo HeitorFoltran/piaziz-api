@@ -68,6 +68,18 @@ class FichaPublicaServiceTest {
     }
 
     @Test
+    void submeter_comCpfInvalido_lancaExcecaoRegistraAuditoriaENaoConsomeToken() {
+        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO("Maria", "11111111111", null, null, null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> fichaPublicaService.submeter("tok", dto, "127.0.0.1"));
+
+        verify(auditLogService).registrar(null, "127.0.0.1", ResultadoFichaPublica.VALIDACAO_FALHOU);
+        verify(conviteTokenService, never()).validar(any());
+        verify(fichaPendenteRepository, never()).save(any());
+    }
+
+    @Test
     void submeter_tokenInvalido_registraAuditoriaELanca404() {
         when(conviteTokenService.validar("tok")).thenReturn(
                 ValidacaoTokenResult.invalido(MotivoTokenInvalido.INVALIDO));

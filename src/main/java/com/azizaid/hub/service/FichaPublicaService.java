@@ -13,6 +13,7 @@ import com.azizaid.hub.model.enums.StatusConvite;
 import com.azizaid.hub.model.enums.StatusFichaPendente;
 import com.azizaid.hub.repository.ConviteFichaRepository;
 import com.azizaid.hub.repository.FichaPendenteRepository;
+import com.azizaid.hub.util.CpfUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +50,11 @@ public class FichaPublicaService {
 
     @Transactional
     public void submeter(String token, FichaPublicaRequestDTO dto, String ip) {
+        if (!CpfUtils.isValido(dto.cpf())) {
+            auditLogService.registrar(null, ip, ResultadoFichaPublica.VALIDACAO_FALHOU);
+            throw new IllegalArgumentException("CPF inválido");
+        }
+
         ValidacaoTokenResult resultado = conviteTokenService.validar(token);
         if (!resultado.valido()) {
             auditLogService.registrar(null, ip, mapResultadoAudit(resultado.motivo()));

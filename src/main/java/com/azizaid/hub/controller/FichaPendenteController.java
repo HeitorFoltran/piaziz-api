@@ -4,6 +4,7 @@ import com.azizaid.hub.dto.request.FichaPendenteRejeitarRequestDTO;
 import com.azizaid.hub.dto.response.FichaPendenteResponseDTO;
 import com.azizaid.hub.model.enums.StatusFichaPendente;
 import com.azizaid.hub.service.FichaPendenteService;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,7 +35,7 @@ public class FichaPendenteController {
     @PostMapping("/{id}/rejeitar")
     public FichaPendenteResponseDTO rejeitar(
             @PathVariable Long id,
-            @RequestBody(required = false) FichaPendenteRejeitarRequestDTO dto) {
+            @Valid @RequestBody(required = false) FichaPendenteRejeitarRequestDTO dto) {
         String motivo = dto != null ? dto.motivo() : null;
         return fichaPendenteService.rejeitar(id, motivo);
     }
