@@ -25,6 +25,11 @@ public class GlobalExceptionHandler {
         return montar(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
+    @ExceptionHandler(MuitasTentativasException.class)
+    public ResponseEntity<Map<String, Object>> handleMuitasTentativas(MuitasTentativasException ex) {
+        return montar(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidacao(MethodArgumentNotValidException ex) {
         String erros = ex.getBindingResult().getFieldErrors().stream()
