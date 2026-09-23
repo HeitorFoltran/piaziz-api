@@ -189,6 +189,24 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
     }
 
     @Test
+    void submeter_comNomeMaiorQueColuna_retorna400ENaoConsomeToken() {
+        Profissional estagiario = criarProfissional(PapelProfissional.ESTAGIARIO, "estagiario6.system@azizaidhub.local");
+        String token = criarConviteEExtrairToken(estagiario);
+
+        FichaRequestDTO fichaDto = construirFichaDto("x".repeat(151), "39053344705");
+        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO(fichaDto, null, null, null);
+        ResponseEntity<String> resposta = restTemplate.postForEntity(
+                "/api/ficha-publica/{token}", dto, String.class, token);
+        assertThat(resposta.getStatusCode())
+                .as("@Size aninhado em ficha precisa cascatear via @Valid, não só validar o wrapper")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+
+        ResponseEntity<FichaPublicaStatusResponseDTO> statusAposFalha = restTemplate.getForEntity(
+                "/api/ficha-publica/{token}/status", FichaPublicaStatusResponseDTO.class, token);
+        assertThat(statusAposFalha.getBody().valido()).isTrue();
+    }
+
+    @Test
     void submeter_comTokenInvalido_retorna404EPersisteAuditoriaMesmoComRollback() {
         FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO(
                 construirFichaDto("Maria", "52998224725"), null, null, null);
