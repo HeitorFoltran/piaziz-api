@@ -49,6 +49,11 @@ public class AuthService {
             throw new CredenciaisInvalidasException(MENSAGEM_GENERICA);
         }
 
+        if (!profissional.isAtivo()) {
+            registrarTentativa(dto.email(), false, ipAddress, "conta inativa");
+            throw new CredenciaisInvalidasException(MENSAGEM_GENERICA);
+        }
+
         registrarTentativa(dto.email(), true, ipAddress, null);
 
         String token = jwtService.gerarToken(profissional.getId(), profissional.getEmail(), profissional.getRole());

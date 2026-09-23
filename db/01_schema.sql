@@ -216,6 +216,12 @@ CREATE TABLE profissional (
     role                   VARCHAR(20)  NOT NULL DEFAULT 'PADRAO'
         CONSTRAINT ck_profissional_role
         CHECK (role IN ('DEV', 'PADRAO', 'ESTAGIARIO')),
+    ativo                  BOOLEAN      NOT NULL DEFAULT TRUE,
+    -- TIMESTAMPTZ (não TIMESTAMP como o resto do schema): comparado direto com o iat (Instant) do
+    -- JWT. Com TIMESTAMP, um UPDATE ... = now() rodado no psql grava hora local da sessão do banco
+    -- (Supabase/docker usam UTC, a JVM local usa America/Sao_Paulo), e um token novo emitido logo
+    -- após a revogação seria rejeitado por até 3h.
+    sessoes_revogadas_em   TIMESTAMPTZ,
     CONSTRAINT fk_profissional_servico
         FOREIGN KEY (servico_id) REFERENCES servico (id)
 );
@@ -343,7 +349,7 @@ CREATE INDEX idx_profissional_servico    ON profissional (servico_id);
 CREATE INDEX idx_ficha_vaga_necessaria_ficha        ON ficha_vaga_necessaria (ficha_id);
 CREATE INDEX idx_ficha_necessidade_imediata_ficha   ON ficha_necessidade_imediata (ficha_id);
 CREATE INDEX idx_acolhimento_tipo_violencia_acolhimento ON acolhimento_tipo_violencia (acolhimento_id);
-CREATE INDEX idx_auth_audit_log_email    ON auth_audit_log (email_tentado);
+CREATE INDEX idx_auth_audit_log_email_timestamp ON auth_audit_log (email_tentado, timestamp);
 CREATE INDEX idx_entity_audit_log_entidade ON entity_audit_log (tipo_entidade, entidade_id);
 CREATE INDEX idx_convite_ficha_criado_por     ON convite_ficha (criado_por_id);
 CREATE INDEX idx_ficha_pendente_status        ON ficha_pendente (status);
