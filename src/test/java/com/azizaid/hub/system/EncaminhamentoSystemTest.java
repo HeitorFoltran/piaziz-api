@@ -6,6 +6,7 @@ import com.azizaid.hub.dto.request.FichaRequestDTO;
 import com.azizaid.hub.dto.response.FichaResponseDTO;
 import com.azizaid.hub.model.Servico;
 import com.azizaid.hub.model.enums.PapelProfissional;
+import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.repository.ServicoRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 
 import static com.azizaid.hub.support.EncaminhamentoTestFactory.construirEncaminhamentoDtoValido;
 import static com.azizaid.hub.support.FichaTestFactory.construirDtoValido;
+import static com.azizaid.hub.support.ProfissionalTestFactory.persistirComToken;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -33,9 +35,12 @@ class EncaminhamentoSystemTest extends PostgresTestContainerConfig {
     @Autowired
     ServicoRepository servicoRepository;
 
+    @Autowired
+    ProfissionalRepository profissionalRepository;
+
     @Test
     void postEncaminhamento_comFichaEncerrada_retorna400() {
-        String token = jwtService.gerarToken(1L, "teste@azizaidhub.local", PapelProfissional.PADRAO);
+        String token = persistirComToken(profissionalRepository, jwtService, PapelProfissional.PADRAO);
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
 
