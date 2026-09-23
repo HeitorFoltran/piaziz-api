@@ -1,15 +1,20 @@
 package com.azizaid.hub.system;
 
 import com.azizaid.hub.config.JwtService;
+import com.azizaid.hub.dto.request.AvaliacaoSocioeconomicaRequestDTO;
 import com.azizaid.hub.dto.request.FichaPendenteRejeitarRequestDTO;
 import com.azizaid.hub.dto.request.FichaPublicaRequestDTO;
+import com.azizaid.hub.dto.request.FichaRequestDTO;
+import com.azizaid.hub.dto.request.HistoricoAtendimentoRequestDTO;
 import com.azizaid.hub.dto.response.ConviteFichaResponseDTO;
 import com.azizaid.hub.dto.response.FichaPendenteResponseDTO;
 import com.azizaid.hub.dto.response.FichaPublicaStatusResponseDTO;
 import com.azizaid.hub.dto.response.FichaPublicaSubmissaoResponseDTO;
+import com.azizaid.hub.dto.response.FichaResponseDTO;
 import com.azizaid.hub.model.Profissional;
 import com.azizaid.hub.model.enums.PapelProfissional;
 import com.azizaid.hub.model.enums.ResultadoFichaPublica;
+import com.azizaid.hub.model.enums.StatusFicha;
 import com.azizaid.hub.repository.FichaPublicaAuditLogRepository;
 import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
@@ -22,6 +27,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -57,22 +64,39 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
         return headers;
     }
 
+    private FichaRequestDTO construirFichaDto(String nome, String cpf) {
+        return new FichaRequestDTO(null, nome, cpf, 28, "(45) 99999-0000",
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    }
+
+    private String criarConviteEExtrairToken(Profissional criador) {
+        ConviteFichaResponseDTO convite = restTemplate.exchange(
+                "/api/convites-ficha", HttpMethod.POST, new HttpEntity<Void>(headersAutenticados(criador)),
+                ConviteFichaResponseDTO.class).getBody();
+        return convite.linkCompleto().substring(convite.linkCompleto().lastIndexOf('/') + 1);
+    }
+
+    private FichaPendenteResponseDTO buscarPendentePorCpf(Profissional revisor, String cpf) {
+        FichaPendenteResponseDTO[] pendentes = restTemplate.exchange(
+                "/api/fichas-pendentes", HttpMethod.GET, new HttpEntity<Void>(headersAutenticados(revisor)),
+                FichaPendenteResponseDTO[].class).getBody();
+        return Arrays.stream(pendentes)
+                .filter(p -> p.cpf().equals(cpf))
+                .findFirst()
+                .orElseThrow();
+    }
+
     @Test
     void fluxoCompleto_conviteSubmissaoEAprovacao() {
         Profissional estagiario = criarProfissional(PapelProfissional.ESTAGIARIO, "estagiario.system@azizaidhub.local");
-        HttpEntity<Void> criarConviteRequisicao = new HttpEntity<>(headersAutenticados(estagiario));
-        ResponseEntity<ConviteFichaResponseDTO> conviteCriado = restTemplate.exchange(
-                "/api/convites-ficha", HttpMethod.POST, criarConviteRequisicao, ConviteFichaResponseDTO.class);
-        assertThat(conviteCriado.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        String linkCompleto = conviteCriado.getBody().linkCompleto();
-        String token = linkCompleto.substring(linkCompleto.lastIndexOf('/') + 1);
+        String token = criarConviteEExtrairToken(estagiario);
 
         ResponseEntity<FichaPublicaStatusResponseDTO> statusAntes = restTemplate.getForEntity(
                 "/api/ficha-publica/{token}/status", FichaPublicaStatusResponseDTO.class, token);
         assertThat(statusAntes.getBody().valido()).isTrue();
 
         FichaPublicaRequestDTO submissaoDto = new FichaPublicaRequestDTO(
-                "Maria da Silva", "48291365709", "(45) 99999-0000", 28, "Relato de situação de risco");
+                construirFichaDto("Maria da Silva", "48291365709"), null, null, "Relato de situação de risco");
         ResponseEntity<FichaPublicaSubmissaoResponseDTO> submissao = restTemplate.postForEntity(
                 "/api/ficha-publica/{token}", submissaoDto, FichaPublicaSubmissaoResponseDTO.class, token);
         assertThat(submissao.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -83,28 +107,91 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
         assertThat(statusDepois.getBody().motivo()).isEqualTo("usado");
 
         Profissional revisor = criarProfissional(PapelProfissional.PADRAO, "revisor.system@azizaidhub.local");
-        HttpEntity<Void> listarRequisicao = new HttpEntity<>(headersAutenticados(revisor));
-        ResponseEntity<FichaPendenteResponseDTO[]> pendentes = restTemplate.exchange(
-                "/api/fichas-pendentes", HttpMethod.GET, listarRequisicao, FichaPendenteResponseDTO[].class);
-        FichaPendenteResponseDTO pendente = java.util.Arrays.stream(pendentes.getBody())
-                .filter(p -> p.cpf().equals("48291365709"))
-                .findFirst()
-                .orElseThrow();
-        Long pendenteId = pendente.id();
+        FichaPendenteResponseDTO pendente = buscarPendentePorCpf(revisor, "48291365709");
         assertThat(pendente.nome()).isEqualTo("Maria da Silva");
+        assertThat(pendente.ficha().nome()).isEqualTo("Maria da Silva");
+        assertThat(pendente.situacaoRelatada()).isEqualTo("Relato de situação de risco");
 
-        HttpEntity<Void> aprovarRequisicao = new HttpEntity<>(headersAutenticados(revisor));
         ResponseEntity<FichaPendenteResponseDTO> aprovada = restTemplate.exchange(
-                "/api/fichas-pendentes/{id}/aprovar", HttpMethod.POST, aprovarRequisicao,
-                FichaPendenteResponseDTO.class, pendenteId);
+                "/api/fichas-pendentes/{id}/aprovar", HttpMethod.POST,
+                new HttpEntity<Void>(headersAutenticados(revisor)), FichaPendenteResponseDTO.class, pendente.id());
         assertThat(aprovada.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(aprovada.getBody().status()).isEqualTo("APROVADA");
         assertThat(aprovada.getBody().fichaId()).isNotNull();
     }
 
     @Test
+    void submeter_comAvaliacaoEHistoricoPreenchidos_aoAprovarPopulaSubRecursosNaFicha() {
+        Profissional estagiario = criarProfissional(PapelProfissional.ESTAGIARIO, "estagiario4.system@azizaidhub.local");
+        String token = criarConviteEExtrairToken(estagiario);
+
+        AvaliacaoSocioeconomicaRequestDTO avaliacaoDto = new AvaliacaoSocioeconomicaRequestDTO(
+                true, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null);
+        HistoricoAtendimentoRequestDTO historicoDto = new HistoricoAtendimentoRequestDTO(
+                true, "posto de saúde central", null, null, null, null, null, null, null);
+        FichaPublicaRequestDTO submissaoDto = new FichaPublicaRequestDTO(
+                construirFichaDto("Beatriz Souza", "39053344705"), avaliacaoDto, historicoDto, null);
+        restTemplate.postForEntity("/api/ficha-publica/{token}", submissaoDto,
+                FichaPublicaSubmissaoResponseDTO.class, token);
+
+        Profissional revisor = criarProfissional(PapelProfissional.PADRAO, "revisor4.system@azizaidhub.local");
+        FichaPendenteResponseDTO pendente = buscarPendentePorCpf(revisor, "39053344705");
+        assertThat(pendente.avaliacao().temRenda()).isTrue();
+        assertThat(pendente.historico().servicoProcuradoQualOnde()).isEqualTo("posto de saúde central");
+
+        FichaPendenteResponseDTO aprovada = restTemplate.exchange(
+                "/api/fichas-pendentes/{id}/aprovar", HttpMethod.POST,
+                new HttpEntity<Void>(headersAutenticados(revisor)), FichaPendenteResponseDTO.class, pendente.id())
+                .getBody();
+
+        ResponseEntity<FichaResponseDTO> fichaResposta = restTemplate.exchange(
+                "/api/fichas/{id}", HttpMethod.GET, new HttpEntity<Void>(headersAutenticados(revisor)),
+                FichaResponseDTO.class, aprovada.fichaId());
+        assertThat(fichaResposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(fichaResposta.getBody().avaliacaoSocioeconomica()).isNotNull();
+        assertThat(fichaResposta.getBody().avaliacaoSocioeconomica().temRenda()).isTrue();
+        assertThat(fichaResposta.getBody().historicoAtendimento()).isNotNull();
+        assertThat(fichaResposta.getBody().historicoAtendimento().servicoProcuradoQualOnde())
+                .isEqualTo("posto de saúde central");
+    }
+
+    @Test
+    void submeter_comNumeroCasoEStatusNoPayload_saoIgnoradosAoAprovar() {
+        Profissional estagiario = criarProfissional(PapelProfissional.ESTAGIARIO, "estagiario5.system@azizaidhub.local");
+        String token = criarConviteEExtrairToken(estagiario);
+
+        FichaRequestDTO fichaDto = new FichaRequestDTO(
+                "2024/999999", "Carla Pereira", "16899622084", 30, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                StatusFicha.ENCERRADO);
+        FichaPublicaRequestDTO submissaoDto = new FichaPublicaRequestDTO(fichaDto, null, null, null);
+        restTemplate.postForEntity("/api/ficha-publica/{token}", submissaoDto,
+                FichaPublicaSubmissaoResponseDTO.class, token);
+
+        Profissional revisor = criarProfissional(PapelProfissional.PADRAO, "revisor5.system@azizaidhub.local");
+        FichaPendenteResponseDTO pendente = buscarPendentePorCpf(revisor, "16899622084");
+        FichaPendenteResponseDTO aprovada = restTemplate.exchange(
+                "/api/fichas-pendentes/{id}/aprovar", HttpMethod.POST,
+                new HttpEntity<Void>(headersAutenticados(revisor)), FichaPendenteResponseDTO.class, pendente.id())
+                .getBody();
+
+        FichaResponseDTO fichaCriada = restTemplate.exchange(
+                "/api/fichas/{id}", HttpMethod.GET, new HttpEntity<Void>(headersAutenticados(revisor)),
+                FichaResponseDTO.class, aprovada.fichaId()).getBody();
+        assertThat(fichaCriada.numeroCaso())
+                .as("numeroCaso enviado pelo intake público não pode vazar pra Ficha — é controlado pela equipe")
+                .isNotEqualTo("2024/999999");
+        assertThat(fichaCriada.status())
+                .as("status enviado pelo intake público não pode vazar pra Ficha — é controlado pela equipe")
+                .isEqualTo("ATIVO");
+    }
+
+    @Test
     void submeter_comTokenInvalido_retorna404EPersisteAuditoriaMesmoComRollback() {
-        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO("Maria", "52998224725", null, null, null);
+        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO(
+                construirFichaDto("Maria", "52998224725"), null, null, null);
         ResponseEntity<String> resposta = restTemplate.postForEntity(
                 "/api/ficha-publica/{token}", dto, String.class, "token-que-nao-existe");
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
@@ -119,12 +206,10 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
     @Test
     void submeter_comCpfInvalido_retorna400ENaoConsomeToken() {
         Profissional estagiario = criarProfissional(PapelProfissional.ESTAGIARIO, "estagiario3.system@azizaidhub.local");
-        ConviteFichaResponseDTO convite = restTemplate.exchange(
-                "/api/convites-ficha", HttpMethod.POST, new HttpEntity<Void>(headersAutenticados(estagiario)),
-                ConviteFichaResponseDTO.class).getBody();
-        String token = convite.linkCompleto().substring(convite.linkCompleto().lastIndexOf('/') + 1);
+        String token = criarConviteEExtrairToken(estagiario);
 
-        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO("Maria", "11111111111", null, null, null);
+        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO(
+                construirFichaDto("Maria", "11111111111"), null, null, null);
         ResponseEntity<String> resposta = restTemplate.postForEntity(
                 "/api/ficha-publica/{token}", dto, String.class, token);
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -139,26 +224,15 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
     @Test
     void rejeitar_pendentePendente_marcaRejeitada() {
         Profissional estagiario = criarProfissional(PapelProfissional.ESTAGIARIO, "estagiario2.system@azizaidhub.local");
-        HttpEntity<Void> criarConviteRequisicao = new HttpEntity<>(headersAutenticados(estagiario));
-        ConviteFichaResponseDTO convite = restTemplate.exchange(
-                "/api/convites-ficha", HttpMethod.POST, criarConviteRequisicao, ConviteFichaResponseDTO.class)
-                .getBody();
-        String token = convite.linkCompleto().substring(convite.linkCompleto().lastIndexOf('/') + 1);
+        String token = criarConviteEExtrairToken(estagiario);
 
         FichaPublicaRequestDTO submissaoDto = new FichaPublicaRequestDTO(
-                "Joana", "11144477735", null, null, null);
+                construirFichaDto("Joana", "11144477735"), null, null, null);
         restTemplate.postForEntity("/api/ficha-publica/{token}", submissaoDto,
                 FichaPublicaSubmissaoResponseDTO.class, token);
 
         Profissional revisor = criarProfissional(PapelProfissional.PADRAO, "revisor2.system@azizaidhub.local");
-        FichaPendenteResponseDTO[] pendentes = restTemplate.exchange(
-                "/api/fichas-pendentes", HttpMethod.GET, new HttpEntity<Void>(headersAutenticados(revisor)),
-                FichaPendenteResponseDTO[].class).getBody();
-        Long pendenteId = java.util.Arrays.stream(pendentes)
-                .filter(p -> p.cpf().equals("11144477735"))
-                .findFirst()
-                .orElseThrow()
-                .id();
+        Long pendenteId = buscarPendentePorCpf(revisor, "11144477735").id();
 
         HttpEntity<FichaPendenteRejeitarRequestDTO> rejeitarRequisicao = new HttpEntity<>(
                 new FichaPendenteRejeitarRequestDTO("Dados incompletos"), headersAutenticados(revisor));
@@ -174,25 +248,15 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
     @Test
     void rejeitar_comMotivoMaiorQue300Caracteres_retorna400() {
         Profissional estagiario = criarProfissional(PapelProfissional.ESTAGIARIO, "estagiario3rejeitar.system@azizaidhub.local");
-        ConviteFichaResponseDTO convite = restTemplate.exchange(
-                "/api/convites-ficha", HttpMethod.POST, new HttpEntity<Void>(headersAutenticados(estagiario)),
-                ConviteFichaResponseDTO.class).getBody();
-        String token = convite.linkCompleto().substring(convite.linkCompleto().lastIndexOf('/') + 1);
+        String token = criarConviteEExtrairToken(estagiario);
 
         FichaPublicaRequestDTO submissaoDto = new FichaPublicaRequestDTO(
-                "Carla", "66677788830", null, null, null);
+                construirFichaDto("Carla", "66677788830"), null, null, null);
         restTemplate.postForEntity("/api/ficha-publica/{token}", submissaoDto,
                 FichaPublicaSubmissaoResponseDTO.class, token);
 
         Profissional revisor = criarProfissional(PapelProfissional.PADRAO, "revisor3.system@azizaidhub.local");
-        FichaPendenteResponseDTO[] pendentes = restTemplate.exchange(
-                "/api/fichas-pendentes", HttpMethod.GET, new HttpEntity<Void>(headersAutenticados(revisor)),
-                FichaPendenteResponseDTO[].class).getBody();
-        Long pendenteId = java.util.Arrays.stream(pendentes)
-                .filter(p -> p.cpf().equals("66677788830"))
-                .findFirst()
-                .orElseThrow()
-                .id();
+        Long pendenteId = buscarPendentePorCpf(revisor, "66677788830").id();
 
         String motivoMuitoLongo = "x".repeat(301);
         HttpEntity<FichaPendenteRejeitarRequestDTO> rejeitarRequisicao = new HttpEntity<>(

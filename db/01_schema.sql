@@ -303,7 +303,10 @@ CREATE TABLE ficha_pendente (
     revisado_por_id      BIGINT REFERENCES profissional (id),
     data_revisao         TIMESTAMP,
     motivo_rejeicao      VARCHAR(300),
-    ficha_id             BIGINT REFERENCES ficha (id)
+    ficha_id             BIGINT REFERENCES ficha (id),
+    dados_ficha_json      JSONB, -- FichaRequestDTO completo (numeroCaso/status sempre zerados antes de salvar)
+    dados_avaliacao_json  JSONB, -- AvaliacaoSocioeconomicaRequestDTO, null se não enviado
+    dados_historico_json  JSONB  -- HistoricoAtendimentoRequestDTO, null se não enviado
 );
 
 CREATE TABLE ficha_publica_audit_log (

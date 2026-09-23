@@ -4,6 +4,7 @@ import com.azizaid.hub.config.ConviteTokenService;
 import com.azizaid.hub.config.ConviteTokenService.MotivoTokenInvalido;
 import com.azizaid.hub.config.ConviteTokenService.ValidacaoTokenResult;
 import com.azizaid.hub.dto.request.FichaPublicaRequestDTO;
+import com.azizaid.hub.dto.request.FichaRequestDTO;
 import com.azizaid.hub.dto.response.FichaPublicaStatusResponseDTO;
 import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.ConviteFicha;
@@ -12,12 +13,14 @@ import com.azizaid.hub.model.enums.ResultadoFichaPublica;
 import com.azizaid.hub.model.enums.StatusConvite;
 import com.azizaid.hub.repository.ConviteFichaRepository;
 import com.azizaid.hub.repository.FichaPendenteRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static com.azizaid.hub.support.FichaTestFactory.construirDtoValido;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -42,7 +45,7 @@ class FichaPublicaServiceTest {
     @BeforeEach
     void setUp() {
         fichaPublicaService = new FichaPublicaService(conviteTokenService, conviteFichaRepository,
-                fichaPendenteRepository, auditLogService);
+                fichaPendenteRepository, auditLogService, new ObjectMapper());
     }
 
     @Test
@@ -69,7 +72,8 @@ class FichaPublicaServiceTest {
 
     @Test
     void submeter_comCpfInvalido_lancaExcecaoRegistraAuditoriaENaoConsomeToken() {
-        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO("Maria", "11111111111", null, null, null);
+        FichaRequestDTO fichaDto = construirDtoValido("11111111111");
+        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO(fichaDto, null, null, null);
 
         assertThrows(IllegalArgumentException.class,
                 () -> fichaPublicaService.submeter("tok", dto, "127.0.0.1"));
@@ -83,7 +87,7 @@ class FichaPublicaServiceTest {
     void submeter_tokenInvalido_registraAuditoriaELanca404() {
         when(conviteTokenService.validar("tok")).thenReturn(
                 ValidacaoTokenResult.invalido(MotivoTokenInvalido.INVALIDO));
-        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO("Maria", "12345678909", null, null, null);
+        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO(construirDtoValido("12345678909"), null, null, null);
 
         assertThrows(RecursoNaoEncontradoException.class,
                 () -> fichaPublicaService.submeter("tok", dto, "127.0.0.1"));
@@ -93,18 +97,43 @@ class FichaPublicaServiceTest {
     }
 
     @Test
-    void submeter_tokenValido_criaFichaPendenteEMarcaConviteUsado() {
+    void submeter_tokenValido_criaFichaPendenteComJsonEMarcaConviteUsado() {
         ConviteFicha convite = ConviteFicha.builder().id(3L).status(StatusConvite.ATIVO).build();
         when(conviteTokenService.validar("tok")).thenReturn(ValidacaoTokenResult.valido(convite));
         when(conviteFichaRepository.marcarComoUsadoSeAtivo(eq(3L), eq(StatusConvite.USADO),
                 eq(StatusConvite.ATIVO), any())).thenReturn(1);
-        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO("Maria", "12345678909", "4599990000", 30, "relato");
+        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO(
+                construirDtoValido("12345678909"), null, null, "relato");
 
         fichaPublicaService.submeter("tok", dto, "127.0.0.1");
 
         verify(fichaPendenteRepository).save(argThat((FichaPendente p) ->
-                p.getNome().equals("Maria") && p.getConviteId().equals(3L)));
+                p.getNome().equals("Vítima Teste")
+                        && p.getConviteId().equals(3L)
+                        && p.getDadosFichaJson() != null
+                        && p.getDadosFichaJson().contains("\"numeroCaso\":null")
+                        && p.getDadosAvaliacaoJson() == null
+                        && p.getDadosHistoricoJson() == null));
         verify(auditLogService).registrar(3L, "127.0.0.1", ResultadoFichaPublica.SUBMETIDO);
+    }
+
+    @Test
+    void submeter_comNumeroCasoEStatusNoPayload_zeraAntesDeSalvar() {
+        ConviteFicha convite = ConviteFicha.builder().id(3L).status(StatusConvite.ATIVO).build();
+        when(conviteTokenService.validar("tok")).thenReturn(ValidacaoTokenResult.valido(convite));
+        when(conviteFichaRepository.marcarComoUsadoSeAtivo(eq(3L), eq(StatusConvite.USADO),
+                eq(StatusConvite.ATIVO), any())).thenReturn(1);
+        FichaRequestDTO fichaDto = new FichaRequestDTO(
+                "2024/999999", "Vítima Teste", "12345678909", 30, "11999999999",
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                com.azizaid.hub.model.enums.StatusFicha.ENCERRADO);
+        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO(fichaDto, null, null, null);
+
+        fichaPublicaService.submeter("tok", dto, "127.0.0.1");
+
+        verify(fichaPendenteRepository).save(argThat((FichaPendente p) ->
+                p.getDadosFichaJson().contains("\"numeroCaso\":null")
+                        && p.getDadosFichaJson().contains("\"status\":null")));
     }
 
     @Test
@@ -113,7 +142,7 @@ class FichaPublicaServiceTest {
         when(conviteTokenService.validar("tok")).thenReturn(ValidacaoTokenResult.valido(convite));
         when(conviteFichaRepository.marcarComoUsadoSeAtivo(eq(3L), eq(StatusConvite.USADO),
                 eq(StatusConvite.ATIVO), any())).thenReturn(0);
-        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO("Maria", "12345678909", null, null, null);
+        FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO(construirDtoValido("12345678909"), null, null, null);
 
         assertThrows(RecursoNaoEncontradoException.class,
                 () -> fichaPublicaService.submeter("tok", dto, "127.0.0.1"));

@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -61,6 +63,18 @@ public class FichaPendente {
 
     @Column(name = "ficha_id")
     private Long fichaId;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "dados_ficha_json", columnDefinition = "jsonb")
+    private String dadosFichaJson;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "dados_avaliacao_json", columnDefinition = "jsonb")
+    private String dadosAvaliacaoJson;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "dados_historico_json", columnDefinition = "jsonb")
+    private String dadosHistoricoJson;
 
     @PrePersist
     public void prePersist() {

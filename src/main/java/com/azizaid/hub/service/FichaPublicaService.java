@@ -4,6 +4,7 @@ import com.azizaid.hub.config.ConviteTokenService;
 import com.azizaid.hub.config.ConviteTokenService.MotivoTokenInvalido;
 import com.azizaid.hub.config.ConviteTokenService.ValidacaoTokenResult;
 import com.azizaid.hub.dto.request.FichaPublicaRequestDTO;
+import com.azizaid.hub.dto.request.FichaRequestDTO;
 import com.azizaid.hub.dto.response.FichaPublicaStatusResponseDTO;
 import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.ConviteFicha;
@@ -14,6 +15,8 @@ import com.azizaid.hub.model.enums.StatusFichaPendente;
 import com.azizaid.hub.repository.ConviteFichaRepository;
 import com.azizaid.hub.repository.FichaPendenteRepository;
 import com.azizaid.hub.util.CpfUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,15 +31,18 @@ public class FichaPublicaService {
     private final ConviteFichaRepository conviteFichaRepository;
     private final FichaPendenteRepository fichaPendenteRepository;
     private final FichaPublicaAuditLogService auditLogService;
+    private final ObjectMapper objectMapper;
 
     public FichaPublicaService(ConviteTokenService conviteTokenService,
                                 ConviteFichaRepository conviteFichaRepository,
                                 FichaPendenteRepository fichaPendenteRepository,
-                                FichaPublicaAuditLogService auditLogService) {
+                                FichaPublicaAuditLogService auditLogService,
+                                ObjectMapper objectMapper) {
         this.conviteTokenService = conviteTokenService;
         this.conviteFichaRepository = conviteFichaRepository;
         this.fichaPendenteRepository = fichaPendenteRepository;
         this.auditLogService = auditLogService;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -50,7 +56,7 @@ public class FichaPublicaService {
 
     @Transactional
     public void submeter(String token, FichaPublicaRequestDTO dto, String ip) {
-        if (!CpfUtils.isValido(dto.cpf())) {
+        if (!CpfUtils.isValido(dto.ficha().cpf())) {
             auditLogService.registrar(null, ip, ResultadoFichaPublica.VALIDACAO_FALHOU);
             throw new IllegalArgumentException("CPF inválido");
         }
@@ -69,18 +75,54 @@ public class FichaPublicaService {
             throw new RecursoNaoEncontradoException(MENSAGEM_LINK_INVALIDO);
         }
 
+        FichaRequestDTO fichaDto = zerarCamposControladosPelaEquipe(dto.ficha());
+
         FichaPendente pendente = new FichaPendente();
         pendente.setConviteId(convite.getId());
-        pendente.setNome(dto.nome());
-        pendente.setCpf(dto.cpf());
-        pendente.setTelefone(dto.telefone());
-        pendente.setIdade(dto.idade());
+        pendente.setNome(fichaDto.nome());
+        pendente.setCpf(fichaDto.cpf());
+        pendente.setTelefone(fichaDto.telefone());
+        pendente.setIdade(fichaDto.idade());
         pendente.setSituacaoRelatada(dto.situacaoRelatada());
         pendente.setIpSubmissao(ip);
         pendente.setStatus(StatusFichaPendente.PENDENTE);
+        pendente.setDadosFichaJson(serializar(fichaDto));
+        pendente.setDadosAvaliacaoJson(dto.avaliacao() != null ? serializar(dto.avaliacao()) : null);
+        pendente.setDadosHistoricoJson(dto.historico() != null ? serializar(dto.historico()) : null);
         fichaPendenteRepository.save(pendente);
 
         auditLogService.registrar(convite.getId(), ip, ResultadoFichaPublica.SUBMETIDO);
+    }
+
+    private FichaRequestDTO zerarCamposControladosPelaEquipe(FichaRequestDTO original) {
+        return new FichaRequestDTO(
+                null,
+                original.nome(),
+                original.cpf(),
+                original.idade(),
+                original.telefone(),
+                original.estadoCivil(),
+                original.pessoasDependentes(),
+                original.idadeFilhos(),
+                original.nivelSeguranca(),
+                original.tipoMoradia(),
+                original.tipoMoradiaOutraDescricao(),
+                original.qtdMoradores(),
+                original.qtdFilhos(),
+                original.ondeMoramFilhos(),
+                original.supervisaoFilhos(),
+                original.vagasNecessarias(),
+                original.necessidadesImediatas(),
+                original.necessidadeOutraDescricao(),
+                null);
+    }
+
+    private String serializar(Object dados) {
+        try {
+            return objectMapper.writeValueAsString(dados);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Falha ao serializar dados do intake público", e);
+        }
     }
 
     private String mapMotivoPublico(MotivoTokenInvalido motivo) {
