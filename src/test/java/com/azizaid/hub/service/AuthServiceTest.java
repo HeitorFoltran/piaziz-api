@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -66,7 +67,7 @@ class AuthServiceTest {
                 .ativo(false)
                 .build();
 
-        when(authAuditLogRepository.countByEmailTentadoAndSucessoFalseAndTimestampAfter(anyString(), any(LocalDateTime.class)))
+        when(authAuditLogRepository.contarFalhasRecentes(anyString(), any(LocalDateTime.class), anyString()))
                 .thenReturn(0L);
         when(profissionalRepository.findByEmail("inativa@azizaidhub.local")).thenReturn(Optional.of(profissional));
         when(passwordEncoder.matches("senha123", "hash")).thenReturn(true);
@@ -81,12 +82,26 @@ class AuthServiceTest {
 
     @Test
     void login_comDezFalhasNaJanela_lancaMuitasTentativasSemChamarPasswordEncoder() {
-        when(authAuditLogRepository.countByEmailTentadoAndSucessoFalseAndTimestampAfter(anyString(), any(LocalDateTime.class)))
+        when(authAuditLogRepository.contarFalhasRecentes(anyString(), any(LocalDateTime.class), anyString()))
                 .thenReturn(10L);
 
         assertThrows(MuitasTentativasException.class,
                 () -> authService.login(new LoginRequestDTO("alvo@azizaidhub.local", "qualquer"), "127.0.0.1"));
 
         verify(passwordEncoder, never()).matches(anyString(), anyString());
+    }
+
+    @Test
+    void login_comLimiteAtingido_naoContaTentativasBarradasAnterioresNaQuery() {
+        when(authAuditLogRepository.contarFalhasRecentes(eq("alvo@azizaidhub.local"), any(LocalDateTime.class), eq("limite por email")))
+                .thenReturn(10L);
+
+        assertThrows(MuitasTentativasException.class,
+                () -> authService.login(new LoginRequestDTO("alvo@azizaidhub.local", "qualquer"), "127.0.0.1"));
+
+        ArgumentCaptor<AuthAuditLog> captor = ArgumentCaptor.forClass(AuthAuditLog.class);
+        verify(authAuditLogRepository).save(captor.capture());
+        assertEquals("limite por email", captor.getValue().getMotivoFalha());
+        verify(authAuditLogRepository).contarFalhasRecentes(eq("alvo@azizaidhub.local"), any(LocalDateTime.class), eq("limite por email"));
     }
 }

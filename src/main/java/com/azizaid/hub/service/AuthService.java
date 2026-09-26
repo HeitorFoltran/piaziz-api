@@ -22,6 +22,7 @@ public class AuthService {
 
     private static final String MENSAGEM_GENERICA = "Credenciais inválidas";
     private static final String MENSAGEM_MUITAS_TENTATIVAS = "Muitas requisições. Tente novamente em alguns minutos.";
+    private static final String MOTIVO_LIMITE_POR_EMAIL = "limite por email";
 
     private final ProfissionalRepository profissionalRepository;
     private final AuthAuditLogRepository authAuditLogRepository;
@@ -45,9 +46,9 @@ public class AuthService {
     public LoginResponseDTO login(LoginRequestDTO dto, String ipAddress) {
         RateLimitProperties.LoginPorEmail limite = rateLimitProperties.loginPorEmail();
         LocalDateTime desde = LocalDateTime.now().minusMinutes(limite.janelaMinutos());
-        long falhas = authAuditLogRepository.countByEmailTentadoAndSucessoFalseAndTimestampAfter(dto.email(), desde);
+        long falhas = authAuditLogRepository.contarFalhasRecentes(dto.email(), desde, MOTIVO_LIMITE_POR_EMAIL);
         if (falhas >= limite.maxFalhas()) {
-            registrarTentativa(dto.email(), false, ipAddress, "limite por email");
+            registrarTentativa(dto.email(), false, ipAddress, MOTIVO_LIMITE_POR_EMAIL);
             throw new MuitasTentativasException(MENSAGEM_MUITAS_TENTATIVAS);
         }
 
