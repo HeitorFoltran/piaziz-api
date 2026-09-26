@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "profissional")
 @Getter
@@ -44,4 +46,11 @@ public class Profissional {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private PapelProfissional role = PapelProfissional.PADRAO;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean ativo = true;
+
+    @Column(name = "sessoes_revogadas_em")
+    private Instant sessoesRevogadasEm;
 }

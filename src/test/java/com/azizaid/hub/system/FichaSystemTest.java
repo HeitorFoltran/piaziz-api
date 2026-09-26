@@ -3,6 +3,7 @@ package com.azizaid.hub.system;
 import com.azizaid.hub.config.JwtService;
 import com.azizaid.hub.dto.request.FichaRequestDTO;
 import com.azizaid.hub.model.enums.PapelProfissional;
+import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import static com.azizaid.hub.support.FichaTestFactory.construirDtoValido;
+import static com.azizaid.hub.support.ProfissionalTestFactory.persistirComToken;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -25,9 +27,12 @@ class FichaSystemTest extends PostgresTestContainerConfig {
     @Autowired
     JwtService jwtService;
 
+    @Autowired
+    ProfissionalRepository profissionalRepository;
+
     @Test
     void postFicha_duasVezesMesmoCpf_segundaRetorna400() {
-        String token = jwtService.gerarToken(1L, "teste@azizaidhub.local", PapelProfissional.PADRAO);
+        String token = persistirComToken(profissionalRepository, jwtService, PapelProfissional.PADRAO);
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
 

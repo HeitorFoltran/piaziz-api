@@ -1,6 +1,8 @@
 package com.azizaid.hub.config;
 
+import com.azizaid.hub.model.Profissional;
 import com.azizaid.hub.model.enums.PapelProfissional;
+import com.azizaid.hub.repository.ProfissionalRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -16,7 +18,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -24,9 +30,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String PREFIXO_BEARER = "Bearer ";
 
     private final JwtService jwtService;
+    private final ProfissionalRepository profissionalRepository;
 
-    public JwtAuthFilter(JwtService jwtService) {
+    public JwtAuthFilter(JwtService jwtService, ProfissionalRepository profissionalRepository) {
         this.jwtService = jwtService;
+        this.profissionalRepository = profissionalRepository;
     }
 
     @Override
@@ -40,7 +48,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtService.validarEExtrairClaims(token);
                 Long profissionalId = jwtService.extrairProfissionalId(claims);
-                PapelProfissional role = jwtService.extrairRole(claims);
+
+                Optional<Profissional> encontrado = profissionalRepository.findById(profissionalId);
+                if (encontrado.isEmpty() || !encontrado.get().isAtivo()
+                        || sessaoRevogada(claims.getIssuedAt(), encontrado.get().getSessoesRevogadasEm())) {
+                    SecurityContextHolder.clearContext();
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
+                PapelProfissional role = encontrado.get().getRole();
 
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
                 var auth = new UsernamePasswordAuthenticationToken(profissionalId, null, authorities);
@@ -51,5 +68,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private static boolean sessaoRevogada(Date emitidoEm, Instant revogadasEm) {
+        return revogadasEm != null
+                && emitidoEm.toInstant().isBefore(revogadasEm.truncatedTo(ChronoUnit.SECONDS));
     }
 }

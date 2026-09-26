@@ -4,6 +4,7 @@ import com.azizaid.hub.config.JwtService;
 import com.azizaid.hub.dto.request.ProfissionalRequestDTO;
 import com.azizaid.hub.dto.response.ProfissionalResponseDTO;
 import com.azizaid.hub.model.enums.PapelProfissional;
+import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import static com.azizaid.hub.support.ProfissionalTestFactory.persistirComToken;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -24,6 +26,9 @@ class ProfissionalSystemTest extends PostgresTestContainerConfig {
 
     @Autowired
     JwtService jwtService;
+
+    @Autowired
+    ProfissionalRepository profissionalRepository;
 
     private ProfissionalRequestDTO construirDtoValido(String email) {
         return new ProfissionalRequestDTO(
@@ -38,7 +43,7 @@ class ProfissionalSystemTest extends PostgresTestContainerConfig {
 
     @Test
     void postProfissional_comRolePadrao_retorna403() {
-        String token = jwtService.gerarToken(1L, "padrao@azizaidhub.local", PapelProfissional.PADRAO);
+        String token = persistirComToken(profissionalRepository, jwtService, PapelProfissional.PADRAO);
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
 
@@ -53,7 +58,7 @@ class ProfissionalSystemTest extends PostgresTestContainerConfig {
 
     @Test
     void postProfissional_comRoleDev_retorna201() {
-        String token = jwtService.gerarToken(1L, "dev@azizaidhub.local", PapelProfissional.DEV);
+        String token = persistirComToken(profissionalRepository, jwtService, PapelProfissional.DEV);
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
 
