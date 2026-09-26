@@ -141,7 +141,7 @@ public class FichaService {
 
     private void registrarEdicaoCrossUserSeAplicavel(Ficha ficha) {
         Long donoId = ficha.getCriadoPorId() != null ? ficha.getCriadoPorId() : ficha.getUltimoEditorId();
-        entityAuditService.registrarSeCrossUser("Ficha", ficha.getId(), donoId);
+        entityAuditService.registrarSeCrossUser("Ficha", ficha.getId(), donoId, ficha.getId());
     }
 
     private String gerarCodigoFicha(int sequencial) {

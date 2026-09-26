@@ -43,7 +43,7 @@ public class AvaliacaoSocioeconomicaService {
 
         if (avaliacao.getId() != null) {
             Long donoId = avaliacao.getCriadoPorId() != null ? avaliacao.getCriadoPorId() : avaliacao.getUltimoEditorId();
-            entityAuditService.registrarSeCrossUser("AvaliacaoSocioeconomica", avaliacao.getId(), donoId);
+            entityAuditService.registrarSeCrossUser("AvaliacaoSocioeconomica", avaliacao.getId(), donoId, ficha.getId());
         }
 
         avaliacao.setTemRenda(dto.temRenda());

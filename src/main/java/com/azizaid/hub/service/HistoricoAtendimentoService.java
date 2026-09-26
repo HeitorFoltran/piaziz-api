@@ -43,7 +43,7 @@ public class HistoricoAtendimentoService {
 
         if (historico.getId() != null) {
             Long donoId = historico.getCriadoPorId() != null ? historico.getCriadoPorId() : historico.getUltimoEditorId();
-            entityAuditService.registrarSeCrossUser("HistoricoAtendimento", historico.getId(), donoId);
+            entityAuditService.registrarSeCrossUser("HistoricoAtendimento", historico.getId(), donoId, ficha.getId());
         }
 
         historico.setJaProcurouServico(dto.jaProcurouServico());
