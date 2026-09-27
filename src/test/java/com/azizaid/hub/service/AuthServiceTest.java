@@ -5,7 +5,6 @@ import com.azizaid.hub.config.RateLimitProperties;
 import com.azizaid.hub.dto.request.LoginRequestDTO;
 import com.azizaid.hub.exception.CredenciaisInvalidasException;
 import com.azizaid.hub.exception.MuitasTentativasException;
-import com.azizaid.hub.model.AuthAuditLog;
 import com.azizaid.hub.model.Profissional;
 import com.azizaid.hub.model.enums.PapelProfissional;
 import com.azizaid.hub.repository.AuthAuditLogRepository;
@@ -13,7 +12,6 @@ import com.azizaid.hub.repository.ProfissionalRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,7 +19,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -40,6 +37,9 @@ class AuthServiceTest {
     AuthAuditLogRepository authAuditLogRepository;
 
     @Mock
+    AuthAuditLogService authAuditLogService;
+
+    @Mock
     PasswordEncoder passwordEncoder;
 
     @Mock
@@ -52,7 +52,8 @@ class AuthServiceTest {
         RateLimitProperties rateLimitProperties = new RateLimitProperties(
                 null, null, null, new RateLimitProperties.LoginPorEmail(10, 15));
         authService = new AuthService(
-                profissionalRepository, authAuditLogRepository, passwordEncoder, jwtService, rateLimitProperties);
+                profissionalRepository, authAuditLogRepository, authAuditLogService, passwordEncoder, jwtService,
+                rateLimitProperties);
     }
 
     @Test
@@ -75,9 +76,7 @@ class AuthServiceTest {
         assertThrows(CredenciaisInvalidasException.class,
                 () -> authService.login(new LoginRequestDTO("inativa@azizaidhub.local", "senha123"), "127.0.0.1"));
 
-        ArgumentCaptor<AuthAuditLog> captor = ArgumentCaptor.forClass(AuthAuditLog.class);
-        verify(authAuditLogRepository).save(captor.capture());
-        assertEquals("conta inativa", captor.getValue().getMotivoFalha());
+        verify(authAuditLogService).registrar("inativa@azizaidhub.local", false, "127.0.0.1", "conta inativa");
     }
 
     @Test
@@ -99,9 +98,7 @@ class AuthServiceTest {
         assertThrows(MuitasTentativasException.class,
                 () -> authService.login(new LoginRequestDTO("alvo@azizaidhub.local", "qualquer"), "127.0.0.1"));
 
-        ArgumentCaptor<AuthAuditLog> captor = ArgumentCaptor.forClass(AuthAuditLog.class);
-        verify(authAuditLogRepository).save(captor.capture());
-        assertEquals("limite por email", captor.getValue().getMotivoFalha());
+        verify(authAuditLogService).registrar("alvo@azizaidhub.local", false, "127.0.0.1", "limite por email");
         verify(authAuditLogRepository).contarFalhasRecentes(eq("alvo@azizaidhub.local"), any(LocalDateTime.class), eq("limite por email"));
     }
 }
