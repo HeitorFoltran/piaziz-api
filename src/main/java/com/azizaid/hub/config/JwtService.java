@@ -48,8 +48,4 @@ public class JwtService {
     public Long extrairProfissionalId(Claims claims) {
         return Long.valueOf(claims.getSubject());
     }
-
-    public PapelProfissional extrairRole(Claims claims) {
-        return PapelProfissional.valueOf(claims.get("role", String.class));
-    }
 }

@@ -1,0 +1,40 @@
+# Produção: frontend e API no mesmo domínio. Copiar para /etc/caddy/Caddyfile e
+# trocar azizaid.example.com pelo domínio real (ver deploy/README.md, passo 9).
+#
+# Sem header_up X-Forwarded-For e sem trusted_proxies: por padrão o Caddy descarta o
+# X-Forwarded-For vindo do cliente e grava o IP real, que é o que o rate limit por IP precisa.
+#
+# Sem diretiva log (access log): a URL do formulário público carrega o token do link
+# (/ficha-publica/<token>). Só ligar com filtro que remova o caminho.
+azizaid.example.com {
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8081
+	}
+
+	handle {
+		root * /srv/azizaid/frontend
+		# encode só aqui, não nas respostas da API.
+		encode zstd gzip
+		# Assets têm hash no nome: cache para sempre. index.html e rotas SPA precisam de
+		# no-cache, senão depois de um deploy o navegador usa um index.html antigo que aponta
+		# para assets que o rsync --delete já apagou, e a tela fica em branco.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@paginas not path /assets/*
+		header @paginas Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# 'unsafe-inline' em style-src: estilos inline dos componentes Radix/shadcn.
+		# fonts.googleapis.com / fonts.gstatic.com: Google Fonts importado em src/index.css do frontend.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		-Server
+	}
+}

@@ -28,6 +28,9 @@ public class EntityAuditLog {
     @Column(name = "entidade_id", nullable = false)
     private Long entidadeId;
 
+    @Column(name = "ficha_id")
+    private Long fichaId;
+
     @Column(name = "editor_id", nullable = false)
     private Long editorId;
 

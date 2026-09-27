@@ -16,7 +16,7 @@ public class EntityAuditService {
     }
 
     @Transactional
-    public void registrarSeCrossUser(String tipoEntidade, Long entidadeId, Long donoId) {
+    public void registrarSeCrossUser(String tipoEntidade, Long entidadeId, Long donoId, Long fichaId) {
         if (donoId == null) {
             return;
         }
@@ -27,6 +27,7 @@ public class EntityAuditService {
         entityAuditLogRepository.save(EntityAuditLog.builder()
                 .tipoEntidade(tipoEntidade)
                 .entidadeId(entidadeId)
+                .fichaId(fichaId)
                 .editorId(editorId)
                 .donoId(donoId)
                 .resumo("Edição cross-user: profissional " + editorId + " editou " + tipoEntidade
