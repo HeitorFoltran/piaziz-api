@@ -15,6 +15,7 @@ import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.repository.ServicoRepository;
 import com.azizaid.hub.util.ContaUtils;
 import com.azizaid.hub.util.CpfUtils;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -88,7 +89,7 @@ public class ProfissionalService {
         profissional.setPodeGerenciarProfissionais(podeGerenciar);
         profissional.setDeveTrocarSenha(true);
 
-        Profissional salvo = profissionalRepository.save(profissional);
+        Profissional salvo = salvarComUnicidade(profissional);
         contaAuditLogService.registrar(salvo.getId(), autor.getId(), AcaoConta.CRIAR,
                 "username: " + salvo.getUsername() + "; role: " + salvo.getRole().name()
                         + (podeGerenciar ? "; podeGerenciarProfissionais" : ""));
@@ -102,7 +103,7 @@ public class ProfissionalService {
         boolean autorDev = autor.getRole() == PapelProfissional.DEV;
         boolean propriaConta = autor.getId().equals(alvo.getId());
 
-        exigirPodeMexerEm(autorDev, alvo);
+        exigirPodeMexerEm(autorDev, propriaConta, alvo);
 
         PapelProfissional role = resolverRole(dto.role());
         boolean roleMudou = role != alvo.getRole();
@@ -177,7 +178,7 @@ public class ProfissionalService {
             alterados.add("ativo");
         }
 
-        Profissional salvo = profissionalRepository.save(alvo);
+        Profissional salvo = salvarComUnicidade(alvo);
         if (!alterados.isEmpty()) {
             contaAuditLogService.registrar(salvo.getId(), autor.getId(), AcaoConta.EDITAR,
                     "campos: " + String.join(", ", alterados));
@@ -190,7 +191,7 @@ public class ProfissionalService {
         Profissional autor = autorAtual();
         Profissional alvo = buscarEntidade(id);
 
-        exigirPodeMexerEm(autor.getRole() == PapelProfissional.DEV, alvo);
+        exigirPodeMexerEm(autor.getRole() == PapelProfissional.DEV, autor.getId().equals(alvo.getId()), alvo);
         if (autor.getId().equals(alvo.getId())) {
             throw new OperacaoNaoPermitidaException("Para trocar a própria senha, use PUT /api/auth/senha");
         }
@@ -203,9 +204,26 @@ public class ProfissionalService {
         contaAuditLogService.registrar(alvo.getId(), autor.getId(), AcaoConta.RESETAR_SENHA, null);
     }
 
-    private static void exigirPodeMexerEm(boolean autorDev, Profissional alvo) {
-        if (!autorDev && alvo.getRole() == PapelProfissional.DEV) {
-            throw new OperacaoNaoPermitidaException("Só o DEV pode alterar uma conta DEV");
+    // Conta DEV e conta de gerenciador: só o DEV mexe. Senão um gerenciador poderia trancar os outros
+    // para fora, ou resetar a senha de um colega e entrar como ele antes da troca. A própria conta fica
+    // fora desta regra: editar tem as travas dela (role, ativo, flag) e resetar a própria senha é recusado.
+    private static void exigirPodeMexerEm(boolean autorDev, boolean propriaConta, Profissional alvo) {
+        if (autorDev || propriaConta) {
+            return;
+        }
+        if (alvo.getRole() == PapelProfissional.DEV || alvo.isPodeGerenciarProfissionais()) {
+            throw new OperacaoNaoPermitidaException("Só o DEV pode alterar uma conta DEV ou de gerenciador");
+        }
+    }
+
+    // As checagens de username/email não pegam duas requisições simultâneas com o mesmo valor: a segunda
+    // bate na constraint UNIQUE do banco. O saveAndFlush faz o erro aparecer aqui, e ele vira o mesmo 400
+    // da checagem normal, em vez de um 500.
+    private Profissional salvarComUnicidade(Profissional profissional) {
+        try {
+            return profissionalRepository.saveAndFlush(profissional);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("username ou email já em uso");
         }
     }
 

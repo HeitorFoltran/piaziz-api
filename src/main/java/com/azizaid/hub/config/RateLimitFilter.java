@@ -33,6 +33,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final Cache<String, Bucket> loginCache;
     private final Cache<String, Bucket> fichaPublicaStatusCache;
     private final Cache<String, Bucket> fichaPublicaEnvioCache;
+    private final Cache<String, Bucket> trocaSenhaCache;
     private final RateLimitProperties properties;
 
     public RateLimitFilter(RateLimitProperties properties, ErroResponseWriter erroResponseWriter) {
@@ -41,6 +42,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         this.loginCache = construirCache(properties.login().janelaMinutos());
         this.fichaPublicaStatusCache = construirCache(properties.fichaPublicaStatus().janelaMinutos());
         this.fichaPublicaEnvioCache = construirCache(properties.fichaPublicaEnvio().janelaMinutos());
+        this.trocaSenhaCache = construirCache(properties.trocaSenha().janelaMinutos());
     }
 
     private static Cache<String, Bucket> construirCache(int janelaMinutos) {
@@ -90,6 +92,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (HttpMethod.GET.matches(metodo) && PATH_MATCHER.match("/api/ficha-publica/*/status", path)) {
             return new Regra("ficha-publica-status", fichaPublicaStatusCache,
                     properties.fichaPublicaStatus().capacidade(), properties.fichaPublicaStatus().janelaMinutos());
+        }
+        // Senha atual errada não conta como falha de login: sem este limite, quem tivesse uma sessão
+        // roubada poderia testar senhas à vontade até acertar e trocar a senha da conta.
+        if (HttpMethod.PUT.matches(metodo) && "/api/auth/senha".equals(path)) {
+            return new Regra("troca-senha", trocaSenhaCache,
+                    properties.trocaSenha().capacidade(), properties.trocaSenha().janelaMinutos());
         }
         if (HttpMethod.POST.matches(metodo) && PATH_MATCHER.match("/api/ficha-publica/*", path)) {
             return new Regra("ficha-publica-envio", fichaPublicaEnvioCache,

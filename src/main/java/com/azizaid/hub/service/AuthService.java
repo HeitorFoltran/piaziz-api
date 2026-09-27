@@ -36,6 +36,9 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RateLimitProperties rateLimitProperties;
+    // Hash de uma senha qualquer: quando o identificador não corresponde a nenhuma conta, o login ainda
+    // roda um BCrypt contra ele, para o tempo de resposta não revelar quais usernames existem.
+    private final String hashFicticio;
 
     public AuthService(ProfissionalRepository profissionalRepository,
                        AuthAuditLogRepository authAuditLogRepository,
@@ -51,6 +54,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.rateLimitProperties = rateLimitProperties;
+        this.hashFicticio = passwordEncoder.encode("senha-ficticia-so-para-igualar-o-tempo");
     }
 
     @Transactional
@@ -75,6 +79,7 @@ public class AuthService {
         }
 
         if (encontrado.isEmpty()) {
+            passwordEncoder.matches(dto.senha(), hashFicticio);
             authAuditLogService.registrar(identificador, null, false, ipAddress, "identificador desconhecido");
             throw new CredenciaisInvalidasException(MENSAGEM_GENERICA);
         }

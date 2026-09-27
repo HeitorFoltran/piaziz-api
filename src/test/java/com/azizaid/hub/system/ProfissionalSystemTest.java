@@ -175,6 +175,29 @@ class ProfissionalSystemTest extends PostgresTestContainerConfig {
     }
 
     @Test
+    void gerenciadorNaoDev_naoMexeEmOutroGerenciador_devMexe() {
+        Profissional gerenciador = persistir(PapelProfissional.PADRAO, true);
+        Profissional colega = persistir(PapelProfissional.PADRAO, true);
+        Profissional dev = persistir(PapelProfissional.DEV, false);
+        String token = token(gerenciador);
+        String url = "/api/profissionais/" + colega.getId();
+
+        ProfissionalEdicaoRequestDTO soNome = new ProfissionalEdicaoRequestDTO("Nome Trocado", colega.getCpf(),
+                null, null, colega.getUsername(), colega.getEmail(), "PADRAO", true, true);
+        assertThat(chamar(HttpMethod.PUT, url, token, soNome).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(chamar(HttpMethod.PUT, url, token,
+                edicaoDe(colega, PapelProfissional.PADRAO, true, false)).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(chamar(HttpMethod.POST, url + "/resetar-senha", token,
+                new ResetarSenhaRequestDTO(SENHA_PROVISORIA)).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        assertThat(chamar(HttpMethod.POST, url + "/resetar-senha", token(dev),
+                new ResetarSenhaRequestDTO(SENHA_PROVISORIA)).getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(chamar(HttpMethod.PUT, url, token(dev),
+                edicaoDe(colega, PapelProfissional.PADRAO, true, false)).getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
     void dev_concedeERetiraFlag_eRetiradaValeNaRequisicaoSeguinteComMesmoToken() {
         Profissional dev = persistir(PapelProfissional.DEV, false);
         Profissional alvo = persistir(PapelProfissional.PADRAO, false);

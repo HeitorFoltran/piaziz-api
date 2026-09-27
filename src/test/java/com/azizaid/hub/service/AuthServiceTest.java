@@ -53,7 +53,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         RateLimitProperties rateLimitProperties = new RateLimitProperties(
-                null, null, null, new RateLimitProperties.LoginPorEmail(10, 15));
+                null, null, null, null, new RateLimitProperties.LoginPorEmail(10, 15));
         authService = new AuthService(
                 profissionalRepository, authAuditLogRepository, authAuditLogService, contaAuditLogService, passwordEncoder,
                 jwtService,
@@ -128,5 +128,18 @@ class AuthServiceTest {
 
         verify(authAuditLogService).registrar("alvo@azizaidhub.local", null, false, "127.0.0.1", "limite por conta");
         verify(authAuditLogRepository).contarFalhasRecentes(eq("alvo@azizaidhub.local"), any(LocalDateTime.class), eq("limite por conta"));
+    }
+
+    @Test
+    void login_comIdentificadorDesconhecido_aindaRodaOBcrypt() {
+        when(authAuditLogRepository.contarFalhasRecentes(anyString(), any(LocalDateTime.class), anyString()))
+                .thenReturn(0L);
+        when(profissionalRepository.findByUsername("ninguem")).thenReturn(Optional.empty());
+
+        assertThrows(CredenciaisInvalidasException.class,
+                () -> authService.login(new LoginRequestDTO("ninguem", "qualquer"), "127.0.0.1"));
+
+        // Mesmo custo de uma conta existente: o tempo de resposta não revela se o username existe.
+        verify(passwordEncoder).matches(eq("qualquer"), any());
     }
 }
