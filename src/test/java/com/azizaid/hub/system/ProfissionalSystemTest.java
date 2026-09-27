@@ -4,6 +4,7 @@ import com.azizaid.hub.config.JwtService;
 import com.azizaid.hub.dto.request.ProfissionalEdicaoRequestDTO;
 import com.azizaid.hub.dto.request.ProfissionalRequestDTO;
 import com.azizaid.hub.dto.request.ResetarSenhaRequestDTO;
+import com.azizaid.hub.dto.response.ContaHistoricoResponseDTO;
 import com.azizaid.hub.dto.response.ProfissionalResponseDTO;
 import com.azizaid.hub.model.ContaAuditLog;
 import com.azizaid.hub.model.Profissional;
@@ -139,6 +140,9 @@ class ProfissionalSystemTest extends PostgresTestContainerConfig {
                     .isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(chamar(HttpMethod.POST, "/api/profissionais/" + alvo.getId() + "/resetar-senha", token,
                     new ResetarSenhaRequestDTO(SENHA_PROVISORIA)).getStatusCode())
+                    .isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(chamar(HttpMethod.GET, "/api/profissionais/" + alvo.getId() + "/historico", token, null)
+                    .getStatusCode())
                     .isEqualTo(HttpStatus.FORBIDDEN);
         }
     }
@@ -403,5 +407,45 @@ class ProfissionalSystemTest extends PostgresTestContainerConfig {
                 .doesNotContain(SENHA_PROVISORIA)
                 .doesNotContain("outra-provisoria-1")
                 .doesNotContain("$2a$"));
+    }
+
+    // --- histórico (GET /{id}/historico) ---
+
+    @Test
+    void historico_criarEditarResetar_devolveMaisNovoPrimeiroComAutorNome() {
+        Profissional gerenciador = persistir(PapelProfissional.PADRAO, true);
+        ProfissionalResponseDTO criado = criarComo(gerenciador, novaConta(PapelProfissional.PADRAO, false));
+        Profissional alvo = profissionalRepository.findById(criado.id()).orElseThrow();
+        String token = token(gerenciador);
+
+        assertThat(chamar(HttpMethod.PUT, "/api/profissionais/" + alvo.getId(), token,
+                edicaoDe(alvo, PapelProfissional.ESTAGIARIO, false, true)).getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+        assertThat(chamar(HttpMethod.POST, "/api/profissionais/" + alvo.getId() + "/resetar-senha", token,
+                new ResetarSenhaRequestDTO("outra-provisoria-1")).getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        ResponseEntity<ContaHistoricoResponseDTO[]> resposta = restTemplate.exchange(
+                "/api/profissionais/" + alvo.getId() + "/historico", HttpMethod.GET, new HttpEntity<>(headers),
+                ContaHistoricoResponseDTO[].class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resposta.getBody()).extracting(ContaHistoricoResponseDTO::acao)
+                .containsExactly(AcaoConta.RESETAR_SENHA, AcaoConta.EDITAR, AcaoConta.CRIAR);
+        assertThat(resposta.getBody()).allSatisfy(l -> {
+            assertThat(l.autorId()).isEqualTo(gerenciador.getId());
+            assertThat(l.autorNome()).isEqualTo(gerenciador.getNome());
+            assertThat(l.timestamp()).isNotNull();
+        });
+        assertThat(resposta.getBody()[1].detalhe()).contains("role");
+    }
+
+    @Test
+    void historico_idInexistente_retorna404() {
+        String token = token(persistir(PapelProfissional.DEV, false));
+
+        assertThat(chamar(HttpMethod.GET, "/api/profissionais/999999999/historico", token, null).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
     }
 }

@@ -8,4 +8,7 @@ import java.util.List;
 public interface ContaAuditLogRepository extends JpaRepository<ContaAuditLog, Long> {
 
     List<ContaAuditLog> findByProfissionalIdOrderByTimestampAsc(Long profissionalId);
+
+    // IdDesc desempata ações gravadas no mesmo instante.
+    List<ContaAuditLog> findByProfissionalIdOrderByTimestampDescIdDesc(Long profissionalId);
 }
