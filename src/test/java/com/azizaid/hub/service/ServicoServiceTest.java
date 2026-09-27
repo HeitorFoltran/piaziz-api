@@ -7,6 +7,7 @@ import com.azizaid.hub.repository.ServicoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -14,6 +15,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,5 +50,52 @@ class ServicoServiceTest {
 
         assertThrows(RecursoNaoEncontradoException.class,
                 () -> servicoService.atualizar(99L, new ServicoRequestDTO("Novo")));
+    }
+
+    @Test
+    void criar_comNomeJaExistente_lancaExcecao() {
+        when(servicoRepository.existsByNomeIgnoreCase("CRAS")).thenReturn(true);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> servicoService.criar(new ServicoRequestDTO("CRAS")));
+
+        assertThat(ex.getMessage()).isEqualTo("Já existe um serviço com este nome");
+        verify(servicoRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_aplicaTrimAntesDeChecarESalvar() {
+        when(servicoRepository.existsByNomeIgnoreCase("CREAS")).thenReturn(false);
+        when(servicoRepository.save(any(Servico.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var resposta = servicoService.criar(new ServicoRequestDTO("  CREAS  "));
+
+        ArgumentCaptor<Servico> captor = ArgumentCaptor.forClass(Servico.class);
+        verify(servicoRepository).save(captor.capture());
+        assertThat(captor.getValue().getNome()).isEqualTo("CREAS");
+        assertThat(resposta.nome()).isEqualTo("CREAS");
+    }
+
+    @Test
+    void atualizar_paraNomeDeOutroServico_lancaExcecao() {
+        Servico servico = Servico.builder().id(1L).nome("CRAS").build();
+        when(servicoRepository.findById(1L)).thenReturn(Optional.of(servico));
+        when(servicoRepository.existsByNomeIgnoreCase("CREAS")).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> servicoService.atualizar(1L, new ServicoRequestDTO(" CREAS ")));
+        verify(servicoRepository, never()).save(any());
+    }
+
+    @Test
+    void atualizar_proprioNomeSoMudandoMaiusculas_passa() {
+        Servico servico = Servico.builder().id(1L).nome("cras").build();
+        when(servicoRepository.findById(1L)).thenReturn(Optional.of(servico));
+        when(servicoRepository.save(servico)).thenReturn(servico);
+
+        var resposta = servicoService.atualizar(1L, new ServicoRequestDTO("CRAS"));
+
+        assertThat(resposta.nome()).isEqualTo("CRAS");
+        verify(servicoRepository, never()).existsByNomeIgnoreCase(any());
     }
 }

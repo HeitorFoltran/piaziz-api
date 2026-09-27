@@ -3,7 +3,9 @@ package com.azizaid.hub.controller;
 import com.azizaid.hub.dto.request.ProfissionalEdicaoRequestDTO;
 import com.azizaid.hub.dto.request.ProfissionalRequestDTO;
 import com.azizaid.hub.dto.request.ResetarSenhaRequestDTO;
+import com.azizaid.hub.dto.response.ContaHistoricoResponseDTO;
 import com.azizaid.hub.dto.response.ProfissionalResponseDTO;
+import com.azizaid.hub.service.ContaHistoricoService;
 import com.azizaid.hub.service.ProfissionalService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -20,9 +22,12 @@ import java.util.List;
 public class ProfissionalController {
 
     private final ProfissionalService profissionalService;
+    private final ContaHistoricoService contaHistoricoService;
 
-    public ProfissionalController(ProfissionalService profissionalService) {
+    public ProfissionalController(ProfissionalService profissionalService,
+                                  ContaHistoricoService contaHistoricoService) {
         this.profissionalService = profissionalService;
+        this.contaHistoricoService = contaHistoricoService;
     }
 
     @GetMapping
@@ -35,6 +40,11 @@ public class ProfissionalController {
     @GetMapping("/{id}")
     public ProfissionalResponseDTO buscarPorId(@PathVariable Long id) {
         return profissionalService.buscarPorId(id);
+    }
+
+    @GetMapping("/{id}/historico")
+    public List<ContaHistoricoResponseDTO> historico(@PathVariable Long id) {
+        return contaHistoricoService.listarPorProfissional(id);
     }
 
     @PostMapping
