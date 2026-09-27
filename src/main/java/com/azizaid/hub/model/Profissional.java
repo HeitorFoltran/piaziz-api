@@ -36,7 +36,10 @@ public class Profissional {
     @JoinColumn(name = "servico_id")
     private Servico servico;
 
-    @Column(nullable = false, unique = true, length = 150)
+    @Column(nullable = false, unique = true, length = 30)
+    private String username;
+
+    @Column(unique = true, length = 150)
     private String email;
 
     @Column(name = "senha_hash", nullable = false, length = 100)
@@ -50,6 +53,12 @@ public class Profissional {
     @Column(nullable = false)
     @Builder.Default
     private boolean ativo = true;
+
+    @Column(name = "pode_gerenciar_profissionais", nullable = false)
+    private boolean podeGerenciarProfissionais;
+
+    @Column(name = "deve_trocar_senha", nullable = false)
+    private boolean deveTrocarSenha;
 
     @Column(name = "sessoes_revogadas_em")
     private Instant sessoesRevogadasEm;

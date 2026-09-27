@@ -22,8 +22,12 @@ public class AuthAuditLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Nome histórico: guarda o identificador digitado (username ou email), em minúsculas.
     @Column(name = "email_tentado", nullable = false, length = 150)
     private String emailTentado;
+
+    @Column(name = "profissional_id")
+    private Long profissionalId;
 
     @Column(nullable = false)
     private boolean sucesso;

@@ -1,6 +1,8 @@
 package com.azizaid.hub.controller;
 
+import com.azizaid.hub.dto.request.ProfissionalEdicaoRequestDTO;
 import com.azizaid.hub.dto.request.ProfissionalRequestDTO;
+import com.azizaid.hub.dto.request.ResetarSenhaRequestDTO;
 import com.azizaid.hub.dto.response.ProfissionalResponseDTO;
 import com.azizaid.hub.service.ProfissionalService;
 import jakarta.validation.Valid;
@@ -11,9 +13,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+// Gerenciador: DEV, ou PADRAO ativo com pode_gerenciar_profissionais (lido do banco a cada requisição).
 @RestController
 @RequestMapping("/api/profissionais")
-@PreAuthorize("hasAnyRole('PADRAO','DEV')")
+@PreAuthorize("@permissoes.podeGerenciarProfissionais()")
 public class ProfissionalController {
 
     private final ProfissionalService profissionalService;
@@ -29,10 +32,25 @@ public class ProfissionalController {
         return profissionalService.listar(q, servicoId);
     }
 
+    @GetMapping("/{id}")
+    public ProfissionalResponseDTO buscarPorId(@PathVariable Long id) {
+        return profissionalService.buscarPorId(id);
+    }
+
     @PostMapping
-    @PreAuthorize("hasRole('DEV')")
     public ResponseEntity<ProfissionalResponseDTO> criar(@Valid @RequestBody ProfissionalRequestDTO dto) {
         ProfissionalResponseDTO criado = profissionalService.criar(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(criado);
+    }
+
+    @PutMapping("/{id}")
+    public ProfissionalResponseDTO editar(@PathVariable Long id, @Valid @RequestBody ProfissionalEdicaoRequestDTO dto) {
+        return profissionalService.editar(id, dto);
+    }
+
+    @PostMapping("/{id}/resetar-senha")
+    public ResponseEntity<Void> resetarSenha(@PathVariable Long id, @Valid @RequestBody ResetarSenhaRequestDTO dto) {
+        profissionalService.resetarSenha(id, dto);
+        return ResponseEntity.noContent().build();
     }
 }

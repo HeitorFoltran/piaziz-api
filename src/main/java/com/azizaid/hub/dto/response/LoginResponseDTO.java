@@ -4,7 +4,9 @@ public record LoginResponseDTO(
         String token,
         Long profissionalId,
         String nome,
+        String username,
         String email,
-        String role
+        String role,
+        boolean deveTrocarSenha
 ) {
 }

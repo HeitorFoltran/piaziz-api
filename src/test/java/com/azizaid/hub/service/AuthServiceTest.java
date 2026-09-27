@@ -40,6 +40,9 @@ class AuthServiceTest {
     AuthAuditLogService authAuditLogService;
 
     @Mock
+    ContaAuditLogService contaAuditLogService;
+
+    @Mock
     PasswordEncoder passwordEncoder;
 
     @Mock
@@ -52,7 +55,8 @@ class AuthServiceTest {
         RateLimitProperties rateLimitProperties = new RateLimitProperties(
                 null, null, null, new RateLimitProperties.LoginPorEmail(10, 15));
         authService = new AuthService(
-                profissionalRepository, authAuditLogRepository, authAuditLogService, passwordEncoder, jwtService,
+                profissionalRepository, authAuditLogRepository, authAuditLogService, contaAuditLogService, passwordEncoder,
+                jwtService,
                 rateLimitProperties);
     }
 
@@ -62,21 +66,45 @@ class AuthServiceTest {
                 .id(1L)
                 .nome("Inativa")
                 .cpf("12345678900")
+                .username("inativa")
                 .email("inativa@azizaidhub.local")
                 .senhaHash("hash")
                 .role(PapelProfissional.PADRAO)
                 .ativo(false)
                 .build();
 
-        when(authAuditLogRepository.contarFalhasRecentes(anyString(), any(LocalDateTime.class), anyString()))
-                .thenReturn(0L);
         when(profissionalRepository.findByEmail("inativa@azizaidhub.local")).thenReturn(Optional.of(profissional));
+        when(authAuditLogRepository.contarFalhasRecentesDaConta(eq(1L), any(LocalDateTime.class), anyString()))
+                .thenReturn(0L);
         when(passwordEncoder.matches("senha123", "hash")).thenReturn(true);
 
         assertThrows(CredenciaisInvalidasException.class,
-                () -> authService.login(new LoginRequestDTO("inativa@azizaidhub.local", "senha123"), "127.0.0.1"));
+                () -> authService.login(new LoginRequestDTO("Inativa@AzizaidHub.local ", "senha123"), "127.0.0.1"));
 
-        verify(authAuditLogService).registrar("inativa@azizaidhub.local", false, "127.0.0.1", "conta inativa");
+        verify(authAuditLogService).registrar("inativa@azizaidhub.local", 1L, false, "127.0.0.1", "conta inativa");
+    }
+
+    @Test
+    void login_porUsername_buscaPorUsernameEContaFalhasPelaConta() {
+        Profissional profissional = Profissional.builder()
+                .id(2L)
+                .nome("Por Username")
+                .cpf("12345678900")
+                .username("por.username")
+                .senhaHash("hash")
+                .role(PapelProfissional.PADRAO)
+                .build();
+
+        when(profissionalRepository.findByUsername("por.username")).thenReturn(Optional.of(profissional));
+        when(authAuditLogRepository.contarFalhasRecentesDaConta(eq(2L), any(LocalDateTime.class), anyString()))
+                .thenReturn(10L);
+
+        assertThrows(MuitasTentativasException.class,
+                () -> authService.login(new LoginRequestDTO("Por.Username", "qualquer"), "127.0.0.1"));
+
+        verify(authAuditLogService).registrar("por.username", 2L, false, "127.0.0.1", "limite por conta");
+        verify(profissionalRepository, never()).findByEmail(anyString());
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
     }
 
     @Test
@@ -92,13 +120,13 @@ class AuthServiceTest {
 
     @Test
     void login_comLimiteAtingido_naoContaTentativasBarradasAnterioresNaQuery() {
-        when(authAuditLogRepository.contarFalhasRecentes(eq("alvo@azizaidhub.local"), any(LocalDateTime.class), eq("limite por email")))
+        when(authAuditLogRepository.contarFalhasRecentes(eq("alvo@azizaidhub.local"), any(LocalDateTime.class), eq("limite por conta")))
                 .thenReturn(10L);
 
         assertThrows(MuitasTentativasException.class,
                 () -> authService.login(new LoginRequestDTO("alvo@azizaidhub.local", "qualquer"), "127.0.0.1"));
 
-        verify(authAuditLogService).registrar("alvo@azizaidhub.local", false, "127.0.0.1", "limite por email");
-        verify(authAuditLogRepository).contarFalhasRecentes(eq("alvo@azizaidhub.local"), any(LocalDateTime.class), eq("limite por email"));
+        verify(authAuditLogService).registrar("alvo@azizaidhub.local", null, false, "127.0.0.1", "limite por conta");
+        verify(authAuditLogRepository).contarFalhasRecentes(eq("alvo@azizaidhub.local"), any(LocalDateTime.class), eq("limite por conta"));
     }
 }

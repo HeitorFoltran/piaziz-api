@@ -18,6 +18,7 @@ import com.azizaid.hub.model.enums.StatusFicha;
 import com.azizaid.hub.repository.FichaPublicaAuditLogRepository;
 import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
+import com.azizaid.hub.support.ProfissionalTestFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -51,6 +52,7 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
         return profissionalRepository.save(Profissional.builder()
                 .nome("Profissional Teste")
                 .cpf("11122233396")
+                .username(ProfissionalTestFactory.usernameUnico())
                 .email(email)
                 .senhaHash("hash-irrelevante-pro-teste")
                 .role(role)
@@ -58,7 +60,7 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
     }
 
     private HttpHeaders headersAutenticados(Profissional profissional) {
-        String token = jwtService.gerarToken(profissional.getId(), profissional.getEmail(), profissional.getRole());
+        String token = jwtService.gerarToken(profissional.getId(), profissional.getUsername(), profissional.getRole());
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
         return headers;

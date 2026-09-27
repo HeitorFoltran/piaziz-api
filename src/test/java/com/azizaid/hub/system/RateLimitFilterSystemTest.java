@@ -6,6 +6,7 @@ import com.azizaid.hub.model.Profissional;
 import com.azizaid.hub.model.enums.PapelProfissional;
 import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
+import com.azizaid.hub.support.ProfissionalTestFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -82,11 +83,12 @@ class RateLimitFilterSystemTest extends PostgresTestContainerConfig {
         Profissional profissional = profissionalRepository.save(Profissional.builder()
                 .nome("Spy Teste")
                 .cpf("12345678900")
+                .username(ProfissionalTestFactory.usernameUnico())
                 .email("spy." + UUID.randomUUID() + "@azizaidhub.local")
                 .senhaHash("hash-irrelevante-pro-teste")
                 .role(PapelProfissional.PADRAO)
                 .build());
-        String token = jwtService.gerarToken(profissional.getId(), profissional.getEmail(), PapelProfissional.PADRAO);
+        String token = jwtService.gerarToken(profissional.getId(), profissional.getUsername(), PapelProfissional.PADRAO);
 
         for (int i = 0; i < 3; i++) {
             tentarLogin();

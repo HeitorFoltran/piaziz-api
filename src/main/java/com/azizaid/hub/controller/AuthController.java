@@ -1,7 +1,9 @@
 package com.azizaid.hub.controller;
 
 import com.azizaid.hub.dto.request.LoginRequestDTO;
+import com.azizaid.hub.dto.request.TrocarSenhaRequestDTO;
 import com.azizaid.hub.dto.response.LoginResponseDTO;
+import com.azizaid.hub.dto.response.UsuarioAtualResponseDTO;
 import com.azizaid.hub.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -20,5 +22,15 @@ public class AuthController {
     @PostMapping("/login")
     public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO dto, HttpServletRequest request) {
         return authService.login(dto, request.getRemoteAddr());
+    }
+
+    @GetMapping("/me")
+    public UsuarioAtualResponseDTO me() {
+        return authService.usuarioAtual();
+    }
+
+    @PutMapping("/senha")
+    public LoginResponseDTO trocarSenha(@Valid @RequestBody TrocarSenhaRequestDTO dto) {
+        return authService.trocarSenha(dto);
     }
 }
