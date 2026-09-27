@@ -242,8 +242,11 @@ rclone config                                    # criar o remote do destino ext
 
 ```
 RCLONE_REMOTE=<remote>:<bucket ou pasta>
+RCLONE_RETENCAO_DIAS=30                         # opcional, ver abaixo
 HEALTHCHECK_URL=https://hc-ping.com/<uuid>      # opcional, avisa se o backup parar de rodar
 ```
+
+`RCLONE_RETENCAO_DIAS` serve para destinos que não têm regra de ciclo de vida, como o Google Drive. Se estiver definido, a cada backup o script apaga no destino os arquivos `azizaid-*.dump.age` com mais desse número de dias, só na pasta do `RCLONE_REMOTE`. Tem que ser um número inteiro maior ou igual a 1. Se ficar vazio, nada é apagado no destino, e a retenção fica com a regra do provedor. No Google Drive, os arquivos apagados vão para a **lixeira** e continuam lá por mais 30 dias antes de sumir. Então, na prática, o prazo total é `RCLONE_RETENCAO_DIAS` + 30 dias, e isso também conta para a política de retenção (LGPD).
 
 Rode uma vez na mão:
 
@@ -257,7 +260,7 @@ Agende no cron com `sudo nano /etc/cron.d/azizaid-backup`:
 30 3 * * * <usuario> /srv/azizaid/azizaid-hub-api/deploy/backup.sh >> /var/backups/azizaid/backup.log 2>&1
 ```
 
-No destino externo, configure uma regra de ciclo de vida que apague arquivos com mais de N dias (sugestão: 30). O backup guarda inclusive dados que já foram apagados do sistema, então esse prazo precisa caber na política de retenção (LGPD).
+No destino externo, configure uma regra de ciclo de vida que apague arquivos com mais de N dias (sugestão: 30), ou use `RCLONE_RETENCAO_DIAS` se o destino não tiver essa regra. O backup guarda inclusive dados que já foram apagados do sistema, então esse prazo precisa caber na política de retenção (LGPD).
 
 ### Teste de restauração: fazer agora
 
