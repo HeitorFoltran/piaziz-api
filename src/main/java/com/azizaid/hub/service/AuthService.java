@@ -6,7 +6,6 @@ import com.azizaid.hub.dto.request.LoginRequestDTO;
 import com.azizaid.hub.dto.response.LoginResponseDTO;
 import com.azizaid.hub.exception.CredenciaisInvalidasException;
 import com.azizaid.hub.exception.MuitasTentativasException;
-import com.azizaid.hub.model.AuthAuditLog;
 import com.azizaid.hub.model.Profissional;
 import com.azizaid.hub.repository.AuthAuditLogRepository;
 import com.azizaid.hub.repository.ProfissionalRepository;
@@ -26,17 +25,20 @@ public class AuthService {
 
     private final ProfissionalRepository profissionalRepository;
     private final AuthAuditLogRepository authAuditLogRepository;
+    private final AuthAuditLogService authAuditLogService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RateLimitProperties rateLimitProperties;
 
     public AuthService(ProfissionalRepository profissionalRepository,
                        AuthAuditLogRepository authAuditLogRepository,
+                       AuthAuditLogService authAuditLogService,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
                        RateLimitProperties rateLimitProperties) {
         this.profissionalRepository = profissionalRepository;
         this.authAuditLogRepository = authAuditLogRepository;
+        this.authAuditLogService = authAuditLogService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.rateLimitProperties = rateLimitProperties;
@@ -48,29 +50,29 @@ public class AuthService {
         LocalDateTime desde = LocalDateTime.now().minusMinutes(limite.janelaMinutos());
         long falhas = authAuditLogRepository.contarFalhasRecentes(dto.email(), desde, MOTIVO_LIMITE_POR_EMAIL);
         if (falhas >= limite.maxFalhas()) {
-            registrarTentativa(dto.email(), false, ipAddress, MOTIVO_LIMITE_POR_EMAIL);
+            authAuditLogService.registrar(dto.email(), false, ipAddress, MOTIVO_LIMITE_POR_EMAIL);
             throw new MuitasTentativasException(MENSAGEM_MUITAS_TENTATIVAS);
         }
 
         Optional<Profissional> encontrado = profissionalRepository.findByEmail(dto.email());
 
         if (encontrado.isEmpty()) {
-            registrarTentativa(dto.email(), false, ipAddress, "email desconhecido");
+            authAuditLogService.registrar(dto.email(), false, ipAddress, "email desconhecido");
             throw new CredenciaisInvalidasException(MENSAGEM_GENERICA);
         }
 
         Profissional profissional = encontrado.get();
         if (!passwordEncoder.matches(dto.senha(), profissional.getSenhaHash())) {
-            registrarTentativa(dto.email(), false, ipAddress, "senha incorreta");
+            authAuditLogService.registrar(dto.email(), false, ipAddress, "senha incorreta");
             throw new CredenciaisInvalidasException(MENSAGEM_GENERICA);
         }
 
         if (!profissional.isAtivo()) {
-            registrarTentativa(dto.email(), false, ipAddress, "conta inativa");
+            authAuditLogService.registrar(dto.email(), false, ipAddress, "conta inativa");
             throw new CredenciaisInvalidasException(MENSAGEM_GENERICA);
         }
 
-        registrarTentativa(dto.email(), true, ipAddress, null);
+        authAuditLogService.registrar(dto.email(), true, ipAddress, null);
 
         String token = jwtService.gerarToken(profissional.getId(), profissional.getEmail(), profissional.getRole());
         return new LoginResponseDTO(
@@ -79,14 +81,5 @@ public class AuthService {
                 profissional.getNome(),
                 profissional.getEmail(),
                 profissional.getRole().name());
-    }
-
-    private void registrarTentativa(String email, boolean sucesso, String ipAddress, String motivoFalha) {
-        authAuditLogRepository.save(AuthAuditLog.builder()
-                .emailTentado(email)
-                .sucesso(sucesso)
-                .ipAddress(ipAddress)
-                .motivoFalha(motivoFalha)
-                .build());
     }
 }
