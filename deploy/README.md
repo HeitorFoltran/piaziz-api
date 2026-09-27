@@ -262,6 +262,8 @@ Agende no cron com `sudo nano /etc/cron.d/azizaid-backup`:
 
 No destino externo, configure uma regra de ciclo de vida que apague arquivos com mais de N dias (sugestão: 30), ou use `RCLONE_RETENCAO_DIAS` se o destino não tiver essa regra. O backup guarda inclusive dados que já foram apagados do sistema, então esse prazo precisa caber na política de retenção (LGPD).
 
+A `ficha_pendente` (envios do formulário público) tem retenção própria na API: aprovadas são apagadas 30 dias após a revisão, rejeitadas após 90, todo dia às 3h. O prazo do backup soma com esse: um envio aprovado continua existindo nos backups por até 30 dias + 14 dias locais + a retenção do destino externo.
+
 ### Teste de restauração: fazer agora
 
 Neste momento o banco só tem o schema, os serviços e o DEV, sem nenhum dado de atendida. Por isso dá para testar no seu computador sem risco. Baixe um backup (`scp`) e rode:
