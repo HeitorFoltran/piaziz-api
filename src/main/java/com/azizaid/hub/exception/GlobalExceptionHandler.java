@@ -1,11 +1,19 @@
 package com.azizaid.hub.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -14,6 +22,8 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(RecursoNaoEncontradoException.class)
     public ResponseEntity<Map<String, Object>> handleNaoEncontrado(RecursoNaoEncontradoException ex) {
@@ -46,6 +56,49 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
         return montar(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // Cobre a AuthorizationDeniedException do @PreAuthorize (subclasse) e a AccessDeniedException
+    // lançada direto por services. Sem este handler, o catch-all abaixo as transformaria em 500.
+    // Mesma mensagem do accessDeniedHandler do SecurityConfig.
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAcessoNegado(AccessDeniedException ex) {
+        return montar(HttpStatus.FORBIDDEN, "Acesso negado");
+    }
+
+    // Não repassa ex.getMessage(): a mensagem do Jackson expõe nomes de classe e de campo interno.
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleCorpoInvalido(HttpMessageNotReadableException ex) {
+        return montar(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido");
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleTipoParametro(MethodArgumentTypeMismatchException ex) {
+        return montar(HttpStatus.BAD_REQUEST, "Parâmetro inválido: " + ex.getName());
+    }
+
+    // Exceções padrão do Spring MVC (ErrorResponse) já carregam o status: 404, 405, 415 etc.
+    // Qualquer outra coisa é 500 genérico, com stack trace no log. A URI não é logada: o caminho
+    // de /api/ficha-publica/{token} carrega o token do link público.
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleInesperado(Exception ex, HttpServletRequest request) {
+        if (ex instanceof ErrorResponse errorResponse) {
+            HttpStatusCode codigo = errorResponse.getStatusCode();
+            HttpStatus status = HttpStatus.resolve(codigo.value());
+            if (status != null && status.is4xxClientError()) {
+                return montar(status, mensagemCliente(status));
+            }
+        }
+        log.error("Erro inesperado em {}", request.getMethod(), ex);
+        return montar(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno");
+    }
+
+    private static String mensagemCliente(HttpStatus status) {
+        return switch (status) {
+            case NOT_FOUND -> "Recurso não encontrado";
+            case METHOD_NOT_ALLOWED -> "Método não permitido";
+            default -> "Requisição inválida";
+        };
     }
 
     private static String formatarErro(FieldError fe) {

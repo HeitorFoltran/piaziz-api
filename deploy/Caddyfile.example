@@ -32,9 +32,13 @@ azizaid.example.com {
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Nada pode ser indexado. Vale também para as respostas da API; complementa o robots.txt
+		# e a meta robots do frontend.
+		X-Robots-Tag "noindex, nofollow"
 		# 'unsafe-inline' em style-src: estilos inline dos componentes Radix/shadcn.
-		# fonts.googleapis.com / fonts.gstatic.com: Google Fonts importado em src/index.css do frontend.
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		# Sem origem externa: as fontes saem do próprio bundle do frontend (@fontsource-variable),
+		# para não vazar o IP de quem abre o link público para terceiros.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		-Server
 	}
 }
