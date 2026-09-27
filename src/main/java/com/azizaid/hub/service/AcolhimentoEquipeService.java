@@ -45,7 +45,7 @@ public class AcolhimentoEquipeService {
 
         if (acolhimento.getId() != null) {
             Long donoId = acolhimento.getCriadoPorId() != null ? acolhimento.getCriadoPorId() : acolhimento.getUltimoEditorId();
-            entityAuditService.registrarSeCrossUser("AcolhimentoEquipe", acolhimento.getId(), donoId);
+            entityAuditService.registrarSeCrossUser("AcolhimentoEquipe", acolhimento.getId(), donoId, ficha.getId());
         }
 
         acolhimento.setNumeroProcessoMpu(dto.numeroProcessoMpu());
