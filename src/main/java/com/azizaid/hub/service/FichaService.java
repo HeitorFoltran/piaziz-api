@@ -1,5 +1,6 @@
 package com.azizaid.hub.service;
 
+import com.azizaid.hub.config.CurrentUser;
 import com.azizaid.hub.dto.request.FichaRequestDTO;
 import com.azizaid.hub.dto.response.FichaResponseDTO;
 import com.azizaid.hub.exception.RecursoNaoEncontradoException;
@@ -23,12 +24,15 @@ public class FichaService {
     private final FichaRepository fichaRepository;
     private final EntityAuditService entityAuditService;
     private final TipoAcompanhamentoRepository tipoAcompanhamentoRepository;
+    private final LeituraAuditService leituraAuditService;
 
     public FichaService(FichaRepository fichaRepository, EntityAuditService entityAuditService,
-                         TipoAcompanhamentoRepository tipoAcompanhamentoRepository) {
+                         TipoAcompanhamentoRepository tipoAcompanhamentoRepository,
+                         LeituraAuditService leituraAuditService) {
         this.fichaRepository = fichaRepository;
         this.entityAuditService = entityAuditService;
         this.tipoAcompanhamentoRepository = tipoAcompanhamentoRepository;
+        this.leituraAuditService = leituraAuditService;
     }
 
     @Transactional(readOnly = true)
@@ -42,6 +46,15 @@ public class FichaService {
     public FichaResponseDTO detalhar(Long id) {
         Ficha ficha = buscarEntidade(id);
         return FichaResponseDTO.from(ficha);
+    }
+
+    // Só para GET /api/fichas/{id}: registra quem abriu o caso. Não usar em fluxos internos, que
+    // registrariam leituras que ninguém fez; para esses, detalhar() ou buscarEntidade().
+    @Transactional(readOnly = true)
+    public FichaResponseDTO abrirParaLeitura(Long id) {
+        FichaResponseDTO ficha = FichaResponseDTO.from(buscarEntidade(id));
+        CurrentUser.id().ifPresent(profissionalId -> leituraAuditService.registrar(id, profissionalId));
+        return ficha;
     }
 
     @Transactional(readOnly = true)

@@ -31,7 +31,7 @@ public class FichaController {
 
     @GetMapping("/{id}")
     public FichaResponseDTO detalhar(@PathVariable Long id) {
-        return fichaService.detalhar(id);
+        return fichaService.abrirParaLeitura(id);
     }
 
     @PostMapping
