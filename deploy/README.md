@@ -295,7 +295,7 @@ Depois que houver dado real, repita o teste mais ou menos a cada 6 meses, **na V
    nc -zvw3 <dominio> 5432     # tem que falhar
    ```
 
-2. **Headers e actuator**: `curl -sI https://<dominio>` precisa mostrar `strict-transport-security` e `content-security-policy`. E `curl -s https://<dominio>/actuator/health` **não** pode devolver o JSON do Spring (tem que vir o HTML do frontend).
+2. **Headers e actuator**: `curl -sI https://<dominio>` precisa mostrar `strict-transport-security`, `content-security-policy` e `x-robots-tag: noindex, nofollow`. E `curl -s https://<dominio>/actuator/health` **não** pode devolver o JSON do Spring (tem que vir o HTML do frontend).
 3. **IP real, spoof e fuso**:
    - Faça login no app. Depois, no seu computador, rode:
 
@@ -313,7 +313,7 @@ Depois que houver dado real, repita o teste mais ou menos a cada 6 meses, **na V
    - As duas linhas precisam mostrar o seu IP público (`curl ifconfig.me`). O `1.2.3.4` não pode aparecer em nenhuma. O `timestamp` precisa bater com o horário de Brasília agora.
    - Se o domínio tiver AAAA, repita o teste com `curl -4` e com `curl -6`.
 4. **Revogação**: faça login no frontend e rode `UPDATE profissional SET sessoes_revogadas_em = now() WHERE username = '<seu usuario>';`. Clique em qualquer coisa no app: ele tem que voltar para a tela de login.
-5. **CSP**: navegue pelas telas principais e pelo formulário público com o console do navegador aberto. Não pode aparecer nenhuma violação de `Content-Security-Policy`.
+5. **CSP**: navegue pelas telas principais e pelo formulário público com o console do navegador aberto. Não pode aparecer nenhuma violação de `Content-Security-Policy`, e a aba Network não pode mostrar nenhuma requisição para `fonts.googleapis.com` ou `fonts.gstatic.com` (as fontes são self-hosted).
 6. **Link de preenchimento**: gere um link e confira que ele começa com `https://<dominio>/ficha-publica/`. Abra numa aba anônima: o formulário tem que carregar. Não precisa enviar.
 7. **Login com username**: saia e entre de novo usando o username (não o email). Tem que funcionar. Se cadastrou email, entre também com ele, em maiúsculas: tem que funcionar igual.
 8. **Backup**: no dia seguinte, confira que há um arquivo novo em `/var/backups/azizaid/` e no destino externo.
