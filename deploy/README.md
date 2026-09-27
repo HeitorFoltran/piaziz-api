@@ -188,11 +188,13 @@ dcp exec db sh -c 'psql -U "$POSTGRES_USER" -d azizaid_hub'
 ```
 
 ```sql
-INSERT INTO profissional (nome, cpf, email, senha_hash, role)
-VALUES ('<seu nome>', '<cpf com máscara>', '<seu email>', '<hash>', 'DEV');
+INSERT INTO profissional (nome, cpf, username, email, senha_hash, role)
+VALUES ('<seu nome>', '<cpf com máscara>', '<seu usuario>', '<seu email>', '<hash>', 'DEV');
 ```
 
-Crie os demais usuários (PADRAO, ESTAGIARIO) pela tela, logado como DEV. Uma conta por pessoa, sem conta compartilhada: o log de auditoria depende disso.
+O username vai em minúsculas, de 3 a 30 caracteres (letras, números, `.`, `-`, `_`). O email é opcional (pode ser `NULL`). O login aceita um ou outro.
+
+Crie os demais usuários (PADRAO, ESTAGIARIO) na **aba Profissionais** da tela Cadastros, logado como DEV (ou como um PADRAO a quem o DEV deu a permissão de gerenciar profissionais). Quem cria define uma senha provisória, e a pessoa é obrigada a trocá-la no primeiro acesso, então quem cria nunca fica sabendo a senha definitiva. Uma conta por pessoa, sem conta compartilhada: o log de auditoria depende disso.
 
 ## 8. Frontend
 
@@ -268,7 +270,7 @@ until docker exec restore-teste pg_isready -U postgres; do sleep 1; done
 docker cp teste.dump restore-teste:/tmp/teste.dump
 docker exec restore-teste createdb -U postgres azizaid_hub
 docker exec restore-teste pg_restore -U postgres -d azizaid_hub --no-owner --no-acl /tmp/teste.dump
-docker exec restore-teste psql -U postgres -d azizaid_hub -c 'SELECT nome FROM servico' -c 'SELECT email, role FROM profissional'
+docker exec restore-teste psql -U postgres -d azizaid_hub -c 'SELECT nome FROM servico' -c 'SELECT username, role FROM profissional'
 docker rm -f restore-teste && rm teste.dump
 ```
 
@@ -299,7 +301,7 @@ Depois que houver dado real, repita o teste mais ou menos a cada 6 meses, **na V
 
      ```bash
      curl -X POST https://<dominio>/api/auth/login -H 'Content-Type: application/json' \
-       -H 'X-Forwarded-For: 1.2.3.4' -d '{"email":"x@x.com","senha":"x"}'
+       -H 'X-Forwarded-For: 1.2.3.4' -d '{"identificador":"x@x.com","senha":"x"}'
      ```
 
    - Consulte o banco:
@@ -310,10 +312,11 @@ Depois que houver dado real, repita o teste mais ou menos a cada 6 meses, **na V
 
    - As duas linhas precisam mostrar o seu IP público (`curl ifconfig.me`). O `1.2.3.4` não pode aparecer em nenhuma. O `timestamp` precisa bater com o horário de Brasília agora.
    - Se o domínio tiver AAAA, repita o teste com `curl -4` e com `curl -6`.
-4. **Revogação**: faça login no frontend e rode `UPDATE profissional SET sessoes_revogadas_em = now() WHERE email = '<seu email>';`. Clique em qualquer coisa no app: ele tem que voltar para a tela de login.
+4. **Revogação**: faça login no frontend e rode `UPDATE profissional SET sessoes_revogadas_em = now() WHERE username = '<seu usuario>';`. Clique em qualquer coisa no app: ele tem que voltar para a tela de login.
 5. **CSP**: navegue pelas telas principais e pelo formulário público com o console do navegador aberto. Não pode aparecer nenhuma violação de `Content-Security-Policy`.
 6. **Link de preenchimento**: gere um link e confira que ele começa com `https://<dominio>/ficha-publica/`. Abra numa aba anônima: o formulário tem que carregar. Não precisa enviar.
-7. **Backup**: no dia seguinte, confira que há um arquivo novo em `/var/backups/azizaid/` e no destino externo.
+7. **Login com username**: saia e entre de novo usando o username (não o email). Tem que funcionar. Se cadastrou email, entre também com ele, em maiúsculas: tem que funcionar igual.
+8. **Backup**: no dia seguinte, confira que há um arquivo novo em `/var/backups/azizaid/` e no destino externo.
 
 ## Deploy de versão nova
 
@@ -368,11 +371,13 @@ dcp logs --tail 200 api                                       # logs da API
 dcp exec db sh -c 'psql -U "$POSTGRES_USER" -d azizaid_hub'   # psql como dono
 ```
 
+Desativar uma conta e resetar senha agora se faz pela aba Profissionais (DEV ou gerenciador). Pelo banco, se precisar:
+
 ```sql
 -- desativar uma conta (vale na hora, para todas as sessões abertas)
-UPDATE profissional SET ativo = false WHERE email = '...';
+UPDATE profissional SET ativo = false WHERE username = '...';
 -- derrubar as sessões de uma pessoa sem desativar a conta (ex.: suspeita de token vazado)
-UPDATE profissional SET sessoes_revogadas_em = now() WHERE email = '...';
--- promover alguém a DEV (não existe rota na API para isso)
-UPDATE profissional SET role = 'DEV' WHERE email = '...';
+UPDATE profissional SET sessoes_revogadas_em = now() WHERE username = '...';
+-- promover alguém a DEV (não existe rota na API para isso, de propósito)
+UPDATE profissional SET role = 'DEV', pode_gerenciar_profissionais = false WHERE username = '...';
 ```

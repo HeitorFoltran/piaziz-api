@@ -7,6 +7,7 @@ public record RateLimitProperties(
         Regra login,
         Regra fichaPublicaStatus,
         Regra fichaPublicaEnvio,
+        Regra trocaSenha,
         LoginPorEmail loginPorEmail) {
 
     public record Regra(int capacidade, int janelaMinutos) {

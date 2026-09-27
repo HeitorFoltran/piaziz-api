@@ -25,11 +25,12 @@ public class JwtService {
         this.chave = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String gerarToken(Long profissionalId, String email, PapelProfissional role) {
+    // Sem email nas claims: é dado pessoal, e o front só usa sub, role e exp.
+    public String gerarToken(Long profissionalId, String username, PapelProfissional role) {
         Instant agora = Instant.now();
         return Jwts.builder()
                 .subject(String.valueOf(profissionalId))
-                .claim("email", email)
+                .claim("username", username)
                 .claim("role", role.name())
                 .issuedAt(Date.from(agora))
                 .expiration(Date.from(agora.plus(EXPIRACAO_HORAS, ChronoUnit.HOURS)))

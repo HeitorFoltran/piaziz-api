@@ -2,22 +2,26 @@ package com.azizaid.hub.system;
 
 import com.azizaid.hub.config.JwtService;
 import com.azizaid.hub.dto.request.LoginRequestDTO;
+import com.azizaid.hub.dto.request.TrocarSenhaRequestDTO;
 import com.azizaid.hub.model.Profissional;
 import com.azizaid.hub.model.enums.PapelProfissional;
 import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
+import com.azizaid.hub.support.ProfissionalTestFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.util.UUID;
 
+import static com.azizaid.hub.support.ProfissionalTestFactory.persistirComToken;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
@@ -26,7 +30,8 @@ import static org.mockito.ArgumentMatchers.any;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "rate-limit.login.capacidade=3",
-        "rate-limit.login.janela-minutos=15"
+        "rate-limit.login.janela-minutos=15",
+        "rate-limit.troca-senha.capacidade=2"
 })
 class RateLimitFilterSystemTest extends PostgresTestContainerConfig {
 
@@ -82,11 +87,12 @@ class RateLimitFilterSystemTest extends PostgresTestContainerConfig {
         Profissional profissional = profissionalRepository.save(Profissional.builder()
                 .nome("Spy Teste")
                 .cpf("12345678900")
+                .username(ProfissionalTestFactory.usernameUnico())
                 .email("spy." + UUID.randomUUID() + "@azizaidhub.local")
                 .senhaHash("hash-irrelevante-pro-teste")
                 .role(PapelProfissional.PADRAO)
                 .build());
-        String token = jwtService.gerarToken(profissional.getId(), profissional.getEmail(), PapelProfissional.PADRAO);
+        String token = jwtService.gerarToken(profissional.getId(), profissional.getUsername(), PapelProfissional.PADRAO);
 
         for (int i = 0; i < 3; i++) {
             tentarLogin();
@@ -104,5 +110,24 @@ class RateLimitFilterSystemTest extends PostgresTestContainerConfig {
 
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
         verify(profissionalRepository, never()).findById(any());
+    }
+
+    @Test
+    void trocaDeSenha_depoisDoLimite_retorna429() {
+        String token = persistirComToken(profissionalRepository, jwtService, PapelProfissional.PADRAO);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        HttpEntity<TrocarSenhaRequestDTO> requisicao =
+                new HttpEntity<>(new TrocarSenhaRequestDTO("senha-atual-errada", "nova-senha-123"), headers);
+
+        for (int i = 0; i < 2; i++) {
+            ResponseEntity<String> resposta =
+                    restTemplate.exchange("/api/auth/senha", HttpMethod.PUT, requisicao, String.class);
+            assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        ResponseEntity<String> resposta =
+                restTemplate.exchange("/api/auth/senha", HttpMethod.PUT, requisicao, String.class);
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
     }
 }

@@ -16,11 +16,14 @@ public class AuthAuditLogService {
     }
 
     // Transação própria: AuthService.login lança exceção logo depois de registrar uma falha, e o
-    // rollback da transação dele não pode levar a linha junto (é dela que sai o bloqueio por email).
+    // rollback da transação dele não pode levar a linha junto (é dela que sai o bloqueio por conta).
+    // profissionalId: a conta a que o identificador corresponde, ou null se não corresponde a nenhuma.
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void registrar(String email, boolean sucesso, String ipAddress, String motivoFalha) {
+    public void registrar(String identificador, Long profissionalId, boolean sucesso, String ipAddress,
+                          String motivoFalha) {
         repository.save(AuthAuditLog.builder()
-                .emailTentado(email)
+                .emailTentado(identificador)
+                .profissionalId(profissionalId)
                 .sucesso(sucesso)
                 .ipAddress(ipAddress)
                 .motivoFalha(motivoFalha)

@@ -17,6 +17,16 @@ public final class CpfUtils {
         return "***.***.***-" + doisUltimos;
     }
 
+    public static String digitos(String cpf) {
+        return cpf == null ? null : cpf.replaceAll("\\D", "");
+    }
+
+    // 000.000.000-00. Só chamar com um CPF válido (11 dígitos).
+    public static String formatar(String cpf) {
+        String d = digitos(cpf);
+        return d.substring(0, 3) + "." + d.substring(3, 6) + "." + d.substring(6, 9) + "-" + d.substring(9);
+    }
+
     public static boolean isValido(String cpf) {
         if (cpf == null) {
             return false;

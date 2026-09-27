@@ -5,6 +5,7 @@ import com.azizaid.hub.model.Profissional;
 import com.azizaid.hub.model.enums.PapelProfissional;
 import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
+import com.azizaid.hub.support.ProfissionalTestFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -36,6 +37,7 @@ class JwtAuthFilterSystemTest extends PostgresTestContainerConfig {
         return profissionalRepository.save(Profissional.builder()
                 .nome("Profissional Filtro")
                 .cpf("12345678900")
+                .username(ProfissionalTestFactory.usernameUnico())
                 .email("filtro." + UUID.randomUUID() + "@azizaidhub.local")
                 .senhaHash("hash-irrelevante-pro-teste")
                 .role(role)
@@ -51,7 +53,7 @@ class JwtAuthFilterSystemTest extends PostgresTestContainerConfig {
     @Test
     void tokenValido_profissionalAtivo_retorna200() {
         Profissional profissional = persistirProfissional(PapelProfissional.PADRAO);
-        String token = jwtService.gerarToken(profissional.getId(), profissional.getEmail(), PapelProfissional.PADRAO);
+        String token = jwtService.gerarToken(profissional.getId(), profissional.getUsername(), PapelProfissional.PADRAO);
 
         assertThat(listarFichas(token).getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -59,7 +61,7 @@ class JwtAuthFilterSystemTest extends PostgresTestContainerConfig {
     @Test
     void contaDesativadaDepoisDoToken_mesmoTokenRetorna401() {
         Profissional profissional = persistirProfissional(PapelProfissional.PADRAO);
-        String token = jwtService.gerarToken(profissional.getId(), profissional.getEmail(), PapelProfissional.PADRAO);
+        String token = jwtService.gerarToken(profissional.getId(), profissional.getUsername(), PapelProfissional.PADRAO);
 
         profissional.setAtivo(false);
         profissionalRepository.save(profissional);
@@ -70,7 +72,7 @@ class JwtAuthFilterSystemTest extends PostgresTestContainerConfig {
     @Test
     void sessaoRevogadaDepoisDoToken_tokenAntigoRetorna401_tokenNovoRetorna200() throws InterruptedException {
         Profissional profissional = persistirProfissional(PapelProfissional.PADRAO);
-        String tokenAntigo = jwtService.gerarToken(profissional.getId(), profissional.getEmail(), PapelProfissional.PADRAO);
+        String tokenAntigo = jwtService.gerarToken(profissional.getId(), profissional.getUsername(), PapelProfissional.PADRAO);
 
         Thread.sleep(1100);
         profissional.setSessoesRevogadasEm(Instant.now());
@@ -79,14 +81,14 @@ class JwtAuthFilterSystemTest extends PostgresTestContainerConfig {
         assertThat(listarFichas(tokenAntigo).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
 
         Thread.sleep(1100);
-        String tokenNovo = jwtService.gerarToken(profissional.getId(), profissional.getEmail(), PapelProfissional.PADRAO);
+        String tokenNovo = jwtService.gerarToken(profissional.getId(), profissional.getUsername(), PapelProfissional.PADRAO);
         assertThat(listarFichas(tokenNovo).getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void roleRebaixadaNoBanco_tokenAntigoPassaARespeitarNovaRole() {
         Profissional profissional = persistirProfissional(PapelProfissional.PADRAO);
-        String token = jwtService.gerarToken(profissional.getId(), profissional.getEmail(), PapelProfissional.PADRAO);
+        String token = jwtService.gerarToken(profissional.getId(), profissional.getUsername(), PapelProfissional.PADRAO);
 
         assertThat(listarFichas(token).getStatusCode()).isEqualTo(HttpStatus.OK);
 
@@ -98,7 +100,7 @@ class JwtAuthFilterSystemTest extends PostgresTestContainerConfig {
 
     @Test
     void tokenDeIdInexistente_retorna401() {
-        String token = jwtService.gerarToken(999_999_999L, "fantasma@azizaidhub.local", PapelProfissional.PADRAO);
+        String token = jwtService.gerarToken(999_999_999L, "fantasma", PapelProfissional.PADRAO);
 
         assertThat(listarFichas(token).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }

@@ -25,6 +25,11 @@ public class GlobalExceptionHandler {
         return montar(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
+    @ExceptionHandler(OperacaoNaoPermitidaException.class)
+    public ResponseEntity<Map<String, Object>> handleOperacaoNaoPermitida(OperacaoNaoPermitidaException ex) {
+        return montar(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
     @ExceptionHandler(MuitasTentativasException.class)
     public ResponseEntity<Map<String, Object>> handleMuitasTentativas(MuitasTentativasException ex) {
         return montar(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());

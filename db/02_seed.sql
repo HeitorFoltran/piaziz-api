@@ -4,18 +4,18 @@ INSERT INTO servico (nome) VALUES
     ('Jurídico'),
     ('Saúde');
 
-INSERT INTO profissional (nome, cpf, carteira_profissional, servico_id, email, senha_hash, role) VALUES
-    ('Dra. Ana Beatriz',     '000.000.000-99', 'CRP-0001',
+INSERT INTO profissional (nome, cpf, carteira_profissional, servico_id, username, email, senha_hash, role, pode_gerenciar_profissionais) VALUES
+    ('Dra. Ana Beatriz',     '418.273.906-03', 'CRP-0001',
         (SELECT id FROM servico WHERE nome = 'Psicologia'),
-        'ana.beatriz@azizaidhub.local', '$2a$10$LO4.a.Z0V1KLHfMvdXr3Y.L.Kb3oGVuW0lUpjZaz5K.IJbeDxMybW', 'PADRAO'),
-    ('Carlos Mendes',        '000.000.000-88', 'CRESS-0002',
+        'ana.beatriz', 'ana.beatriz@azizaidhub.local', '$2a$10$LO4.a.Z0V1KLHfMvdXr3Y.L.Kb3oGVuW0lUpjZaz5K.IJbeDxMybW', 'PADRAO', TRUE),
+    ('Carlos Mendes',        '905.316.248-89', 'CRESS-0002',
         (SELECT id FROM servico WHERE nome = 'Assistência Social'),
-        'carlos.mendes@azizaidhub.local', '$2a$10$LO4.a.Z0V1KLHfMvdXr3Y.L.Kb3oGVuW0lUpjZaz5K.IJbeDxMybW', 'PADRAO'),
-    ('Dra. Fernanda Costa',  '000.000.000-77', 'OAB-0003',
+        'carlos.mendes', 'carlos.mendes@azizaidhub.local', '$2a$10$LO4.a.Z0V1KLHfMvdXr3Y.L.Kb3oGVuW0lUpjZaz5K.IJbeDxMybW', 'PADRAO', FALSE),
+    ('Dra. Fernanda Costa',  '637.402.851-17', 'OAB-0003',
         (SELECT id FROM servico WHERE nome = 'Jurídico'),
-        'fernanda.costa@azizaidhub.local', '$2a$10$LO4.a.Z0V1KLHfMvdXr3Y.L.Kb3oGVuW0lUpjZaz5K.IJbeDxMybW', 'PADRAO'),
-    ('Estagiário Demo',      '000.000.000-66', NULL, NULL,
-        'estagiario@azizaidhub.local', '$2a$10$LO4.a.Z0V1KLHfMvdXr3Y.L.Kb3oGVuW0lUpjZaz5K.IJbeDxMybW', 'ESTAGIARIO');
+        'fernanda.costa', 'fernanda.costa@azizaidhub.local', '$2a$10$LO4.a.Z0V1KLHfMvdXr3Y.L.Kb3oGVuW0lUpjZaz5K.IJbeDxMybW', 'PADRAO', FALSE),
+    ('Estagiário Demo',      '250.719.384-05', NULL, NULL,
+        'estagiario', 'estagiario@azizaidhub.local', '$2a$10$LO4.a.Z0V1KLHfMvdXr3Y.L.Kb3oGVuW0lUpjZaz5K.IJbeDxMybW', 'ESTAGIARIO', FALSE);
 
 INSERT INTO ficha (codigo_ficha, numero_caso, nome, cpf, idade, telefone,
                    estado_civil, pessoas_dependentes, idade_filhos, nivel_seguranca,

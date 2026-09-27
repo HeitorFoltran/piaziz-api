@@ -12,6 +12,11 @@ public final class ProfissionalTestFactory {
     private ProfissionalTestFactory() {
     }
 
+    // Cabe no limite de 30 caracteres e no formato ^[a-z0-9._-]{3,30}$.
+    public static String usernameUnico() {
+        return "u." + UUID.randomUUID().toString().substring(0, 13);
+    }
+
     public static String persistirComToken(ProfissionalRepository profissionalRepository,
                                             JwtService jwtService,
                                             PapelProfissional role) {
@@ -26,11 +31,12 @@ public final class ProfissionalTestFactory {
         Profissional profissional = profissionalRepository.save(Profissional.builder()
                 .nome(nome)
                 .cpf("12345678900")
+                .username(usernameUnico())
                 .email(email)
                 .senhaHash("hash-irrelevante-pro-teste")
                 .role(role)
                 .build());
 
-        return jwtService.gerarToken(profissional.getId(), profissional.getEmail(), role);
+        return jwtService.gerarToken(profissional.getId(), profissional.getUsername(), role);
     }
 }

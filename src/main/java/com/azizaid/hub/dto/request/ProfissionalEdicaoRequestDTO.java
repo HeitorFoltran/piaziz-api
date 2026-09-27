@@ -2,10 +2,12 @@ package com.azizaid.hub.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-// Criação de conta. Formato do username e unicidade de username/email/CPF: ProfissionalService.
-public record ProfissionalRequestDTO(
+// Edição de conta: os mesmos campos da criação, menos a senha, mais ativo. Validações de
+// username/email/CPF só valem para o campo que mudou (ProfissionalService.editar).
+public record ProfissionalEdicaoRequestDTO(
         @NotBlank(message = "nome é obrigatório")
         @Size(max = 150, message = "nome deve ter no máximo 150 caracteres")
         String nome,
@@ -20,11 +22,11 @@ public record ProfissionalRequestDTO(
         @Email(message = "email inválido")
         @Size(max = 150, message = "email deve ter no máximo 150 caracteres")
         String email,
-        @NotBlank(message = "senhaProvisoria é obrigatória")
-        @Size(min = 8, max = 72, message = "senhaProvisoria deve ter entre 8 e 72 caracteres")
-        String senhaProvisoria,
         @NotBlank(message = "role é obrigatória")
         String role,
-        Boolean podeGerenciarProfissionais
+        @NotNull(message = "podeGerenciarProfissionais é obrigatório")
+        Boolean podeGerenciarProfissionais,
+        @NotNull(message = "ativo é obrigatório")
+        Boolean ativo
 ) {
 }

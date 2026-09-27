@@ -9,6 +9,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -28,13 +29,17 @@ import java.util.Optional;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final String PREFIXO_BEARER = "Bearer ";
+    private static final String MENSAGEM_TROCA_OBRIGATORIA = "Troca de senha obrigatória";
 
     private final JwtService jwtService;
     private final ProfissionalRepository profissionalRepository;
+    private final ErroResponseWriter erroResponseWriter;
 
-    public JwtAuthFilter(JwtService jwtService, ProfissionalRepository profissionalRepository) {
+    public JwtAuthFilter(JwtService jwtService, ProfissionalRepository profissionalRepository,
+                         ErroResponseWriter erroResponseWriter) {
         this.jwtService = jwtService;
         this.profissionalRepository = profissionalRepository;
+        this.erroResponseWriter = erroResponseWriter;
     }
 
     @Override
@@ -62,12 +67,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
                 var auth = new UsernamePasswordAuthenticationToken(profissionalId, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
+
+                // Barreira no servidor: o front redireciona antes, mas não dá para confiar só nele.
+                if (encontrado.get().isDeveTrocarSenha() && !liberadaDuranteTrocaDeSenha(request)) {
+                    erroResponseWriter.escrever(response, HttpStatus.FORBIDDEN, MENSAGEM_TROCA_OBRIGATORIA);
+                    return;
+                }
             } catch (JwtException | IllegalArgumentException e) {
                 SecurityContextHolder.clearContext();
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private static boolean liberadaDuranteTrocaDeSenha(HttpServletRequest request) {
+        String caminho = request.getRequestURI().substring(request.getContextPath().length());
+        String metodo = request.getMethod();
+        return ("PUT".equals(metodo) && "/api/auth/senha".equals(caminho))
+                || ("GET".equals(metodo) && "/api/auth/me".equals(caminho));
     }
 
     private static boolean sessaoRevogada(Date emitidoEm, Instant revogadasEm) {

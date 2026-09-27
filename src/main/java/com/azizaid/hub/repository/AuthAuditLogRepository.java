@@ -19,4 +19,15 @@ public interface AuthAuditLogRepository extends JpaRepository<AuthAuditLog, Long
     long contarFalhasRecentes(@Param("email") String email,
                              @Param("desde") LocalDateTime desde,
                              @Param("motivoIgnorado") String motivoIgnorado);
+
+    @Query("""
+            SELECT COUNT(a) FROM AuthAuditLog a
+            WHERE a.profissionalId = :profissionalId
+              AND a.sucesso = false
+              AND a.timestamp > :desde
+              AND (a.motivoFalha IS NULL OR a.motivoFalha <> :motivoIgnorado)
+            """)
+    long contarFalhasRecentesDaConta(@Param("profissionalId") Long profissionalId,
+                                     @Param("desde") LocalDateTime desde,
+                                     @Param("motivoIgnorado") String motivoIgnorado);
 }
