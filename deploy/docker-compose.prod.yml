@@ -1,0 +1,52 @@
+# Produção na VPS. Passo a passo em deploy/README.md.
+# Segredos ficam fora do repo, em /etc/azizaid/{db,api}.env (AZIZAID_ENV_DIR só serve
+# para validar este arquivo fora da VPS). O schema é aplicado à mão, uma vez só, e o
+# seed nunca roda aqui: nada é montado em /docker-entrypoint-initdb.d.
+name: azizaid-prod
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "5"
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    logging: *logging
+    env_file: ${AZIZAID_ENV_DIR:-/etc/azizaid}/db.env
+    environment:
+      POSTGRES_DB: azizaid_hub
+      # No primeiro boot vira o fuso padrão do servidor: consultas no psql batem com o horário gravado.
+      TZ: America/Sao_Paulo
+    # Sem ports: o banco só é alcançável pela rede interna do compose.
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d azizaid_hub"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: ${AZIZAID_ENV_DIR:-/etc/azizaid}/api.env
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/azizaid_hub
+      # LocalDateTime.now() usa o fuso da JVM; a imagem roda em UTC sem isso.
+      TZ: America/Sao_Paulo
+      SPRING_JPA_SHOW_SQL: "false"
+    # Só em 127.0.0.1: o Docker publica portas via iptables, por cima do ufw.
+    # "8081:8081" deixaria a API aberta na internet sem passar pelo Caddy.
+    ports:
+      - "127.0.0.1:8081:8081"
+
+volumes:
+  db-data:
