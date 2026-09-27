@@ -10,6 +10,8 @@ import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "historico_atendimento")
 @EntityListeners(AuditingEntityListener.class)
@@ -55,6 +57,9 @@ public class HistoricoAtendimento {
     @Column(name = "reacao_agressor", length = 500)
     private String reacaoAgressor;
 
+    @Column(name = "data_criacao")
+    private LocalDateTime dataCriacao;
+
     @CreatedBy
     @Column(name = "criado_por_id", updatable = false)
     private Long criadoPorId;
@@ -62,4 +67,11 @@ public class HistoricoAtendimento {
     @LastModifiedBy
     @Column(name = "ultimo_editor_id")
     private Long ultimoEditorId;
+
+    @PrePersist
+    public void prePersist() {
+        if (dataCriacao == null) {
+            dataCriacao = LocalDateTime.now();
+        }
+    }
 }

@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface FichaRepository extends JpaRepository<Ficha, Long> {
 
@@ -18,6 +19,19 @@ public interface FichaRepository extends JpaRepository<Ficha, Long> {
     long countByDataCriacaoBetween(LocalDateTime inicio, LocalDateTime fim);
 
     boolean existsByCpf(String cpf);
+
+    @Query("SELECT COUNT(DISTINCT f.id) FROM Ficha f JOIN f.encaminhamentos e")
+    long contarFichasComEncaminhamento();
+
+    @Query("SELECT COUNT(DISTINCT f.id) FROM Ficha f JOIN f.encaminhamentos e WHERE f.historicoAtendimento IS NOT NULL")
+    long contarFichasComEncaminhamentoEAtendimento();
+
+    @Query(value = "SELECT MIN(data_criacao) FROM ficha", nativeQuery = true)
+    Optional<LocalDateTime> findMinDataCriacao();
+
+    @Query(value = "SELECT date_trunc(:unidade, data_criacao) AS periodo, COUNT(*) AS total "
+            + "FROM ficha GROUP BY periodo ORDER BY periodo", nativeQuery = true)
+    List<Object[]> progressaoCadastros(@Param("unidade") String unidade);
 
     @Query("""
             SELECT f FROM Ficha f
