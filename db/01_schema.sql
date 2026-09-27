@@ -5,6 +5,8 @@ DROP TABLE IF EXISTS entity_audit_log             CASCADE;
 DROP TABLE IF EXISTS auth_audit_log               CASCADE;
 DROP TABLE IF EXISTS ficha_necessidade_imediata   CASCADE;
 DROP TABLE IF EXISTS ficha_vaga_necessaria        CASCADE;
+DROP TABLE IF EXISTS ficha_tipo_acompanhamento    CASCADE;
+DROP TABLE IF EXISTS tipo_acompanhamento          CASCADE;
 DROP TABLE IF EXISTS acolhimento_tipo_violencia   CASCADE;
 DROP TABLE IF EXISTS acolhimento_equipe           CASCADE;
 DROP TABLE IF EXISTS historico_atendimento        CASCADE;
