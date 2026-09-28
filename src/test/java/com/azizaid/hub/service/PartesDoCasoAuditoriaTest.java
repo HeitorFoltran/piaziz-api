@@ -170,7 +170,14 @@ class PartesDoCasoAuditoriaTest {
 
     private static AcolhimentoEquipeRequestDTO acolhimento(Set<TipoViolencia> tipos, String observacoes) {
         return new AcolhimentoEquipeRequestDTO(null, null, null, tipos, null, null, null, null, null, null,
-                null, null, null, null, observacoes, null);
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, observacoes, null);
+    }
+
+    private static AcolhimentoEquipeRequestDTO acolhimentoSugerindoHabitacao(Boolean sugereHabitacao) {
+        return new AcolhimentoEquipeRequestDTO(null, null, null, Set.of(), null, null, null, null, null, null,
+                null, null, null, null, true, "UBS", null, null, sugereHabitacao, null, null, null, null, null,
+                null, null, null, "obs", null);
     }
 
     @Test
@@ -202,6 +209,26 @@ class PartesDoCasoAuditoriaTest {
         when(acolhimentoRepository.save(any(AcolhimentoEquipe.class))).thenAnswer(inv -> inv.getArgument(0));
 
         acolhimentoService.salvar(1L, acolhimento(Set.of(tipos[0], tipos[1]), null));
+
+        EntityAuditLog linha = linhaGravada();
+        assertThat(linha.getAcao()).isEqualTo(AcaoAlteracao.EDITOU);
+        assertThat(linha.getTipoEntidade()).isEqualTo("AcolhimentoEquipe");
+    }
+
+    @Test
+    void acolhimento_existenteMudandoSoUmaSugestao_gravaEditou() {
+        Ficha ficha = fichaCriadaEm(LocalDateTime.now().minusDays(3));
+        AcolhimentoEquipe existente = new AcolhimentoEquipe();
+        existente.setId(8L);
+        existente.setFicha(ficha);
+        existente.setSugereSaudeGeral(true);
+        existente.setSugereSaudeGeralQual("UBS");
+        existente.setSugereHabitacao(false);
+        existente.setObservacoesRelevantes("obs");
+        when(acolhimentoRepository.findByFichaId(1L)).thenReturn(Optional.of(existente));
+        when(acolhimentoRepository.save(any(AcolhimentoEquipe.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        acolhimentoService.salvar(1L, acolhimentoSugerindoHabitacao(true));
 
         EntityAuditLog linha = linhaGravada();
         assertThat(linha.getAcao()).isEqualTo(AcaoAlteracao.EDITOU);

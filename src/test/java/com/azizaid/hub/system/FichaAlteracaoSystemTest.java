@@ -146,7 +146,8 @@ class FichaAlteracaoSystemTest extends PostgresTestContainerConfig {
         Long fichaId = criarFicha(tokenA, "41823657982");
         TipoViolencia[] tipos = TipoViolencia.values();
         AcolhimentoEquipeRequestDTO acolhimento = new AcolhimentoEquipeRequestDTO(null, null, "", Set.of(tipos[0], tipos[1]),
-                null, null, true, null, null, null, null, null, null, null, "", null);
+                null, null, true, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, "", null);
         HistoricoAtendimentoRequestDTO historico = new HistoricoAtendimentoRequestDTO(true, "", null, null, null,
                 null, null, null, null);
 

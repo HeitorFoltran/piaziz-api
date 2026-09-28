@@ -170,7 +170,21 @@ CREATE TABLE acolhimento_equipe (
         CONSTRAINT ck_acolhimento_categoria_classificacao
         CHECK (categoria_classificacao IN ('CATEGORIA_1', 'CATEGORIA_2', 'CATEGORIA_3', 'CATEGORIA_4')),
 
-    observacoes_relevantes                      VARCHAR(2000),
+    sugere_saude_geral                          BOOLEAN,
+    sugere_saude_geral_qual                     VARCHAR(200),
+    sugere_saude_mental                         BOOLEAN,
+    sugere_saude_mental_qual                    VARCHAR(200),
+    sugere_habitacao                            BOOLEAN,
+    sugere_habitacao_qual                       VARCHAR(200),
+    sugere_trabalho_emprego                     BOOLEAN,
+    sugere_trabalho_emprego_qual                VARCHAR(200),
+    sugere_assistencia_social                   BOOLEAN,
+    sugere_assistencia_social_qual              VARCHAR(200),
+    sugere_assistencia_educacional              BOOLEAN,
+    sugere_assistencia_educacional_qual         VARCHAR(200),
+    sugere_outro                                VARCHAR(300),
+
+    observacoes_relevantes                     VARCHAR(2000),
     responsavel_acolhimento_juridico            VARCHAR(150),
 
     criado_por_id                               BIGINT,
