@@ -110,11 +110,17 @@ class FichaAlteracaoSystemTest extends PostgresTestContainerConfig {
                 new HttpEntity<>(headersPara(tokenA)), AlteracaoFichaResponseDTO[].class, fichaId);
 
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(resposta.getBody()).hasSize(1);
+        assertThat(resposta.getBody()).hasSize(2);
         AlteracaoFichaResponseDTO linha = resposta.getBody()[0];
         assertThat(linha.tipoEntidade()).isEqualTo("Ficha");
+        assertThat(linha.acao()).isEqualTo("EDITOU");
         assertThat(linha.editorNome()).isEqualTo("Bruno Editor");
         assertThat(linha.donoNome()).isEqualTo("Ana Criadora");
+
+        AlteracaoFichaResponseDTO criacao = resposta.getBody()[1];
+        assertThat(criacao.id()).isNull();
+        assertThat(criacao.acao()).isEqualTo("CRIOU");
+        assertThat(criacao.editorNome()).isEqualTo("Ana Criadora");
     }
 
     @Test
@@ -154,6 +160,8 @@ class FichaAlteracaoSystemTest extends PostgresTestContainerConfig {
         }
 
         assertThat(entityAuditLogRepository.findByFichaIdOrderByTimestampDesc(fichaId)).isEmpty();
+        assertThat(listarAlteracoes(tokenA, fichaId)).extracting(AlteracaoFichaResponseDTO::acao)
+                .containsExactly("CRIOU");
     }
 
     @Test
@@ -170,6 +178,10 @@ class FichaAlteracaoSystemTest extends PostgresTestContainerConfig {
         assertThat(linhas.get(0).getAcao()).isEqualTo(AcaoAlteracao.MUDOU_STATUS);
         assertThat(linhas.get(0).getTipoEntidade()).isEqualTo("StatusFicha");
         assertThat(linhas.get(0).getDetalhe()).isEqualTo("Ativo -> Arquivado");
+
+        AlteracaoFichaResponseDTO[] historico = listarAlteracoes(tokenA, fichaId);
+        assertThat(historico).extracting(AlteracaoFichaResponseDTO::acao).containsExactly("MUDOU_STATUS", "CRIOU");
+        assertThat(historico[0].detalhe()).isEqualTo("Ativo -> Arquivado");
     }
 
     @Test
@@ -193,7 +205,7 @@ class FichaAlteracaoSystemTest extends PostgresTestContainerConfig {
                 "/api/fichas/{id}/alteracoes", HttpMethod.GET,
                 new HttpEntity<>(headersPara(tokenA)), AlteracaoFichaResponseDTO[].class, fichaId);
 
-        assertThat(resposta.getBody()).hasSize(1);
+        assertThat(resposta.getBody()).extracting(AlteracaoFichaResponseDTO::acao).containsExactly("EDITOU", "CRIOU");
         assertThat(resposta.getBody()[0].tipoEntidade()).isEqualTo("AvaliacaoSocioeconomica");
         assertThat(resposta.getBody()[0].editorNome()).isEqualTo("Bruno Editor");
     }
