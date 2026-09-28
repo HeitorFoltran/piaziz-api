@@ -3,7 +3,7 @@ package com.azizaid.hub.model.enums;
 public enum TipoMoradia {
     CASA_PROPRIA("Casa própria"),
     ALUGADA("Casa alugada"),
-    CEDIDA("Casa cedida"),
+    CEDIDA("Casa cedida (emprestada por alguém)"),
     ABRIGO("Abrigo temporário"),
     OUTRO("Outro");
 

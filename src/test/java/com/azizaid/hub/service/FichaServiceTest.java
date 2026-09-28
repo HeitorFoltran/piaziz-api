@@ -4,6 +4,7 @@ import com.azizaid.hub.dto.request.FichaRequestDTO;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.model.TipoAcompanhamento;
 import com.azizaid.hub.model.enums.AcaoAlteracao;
+import com.azizaid.hub.model.enums.NecessidadeImediata;
 import com.azizaid.hub.model.enums.StatusFicha;
 import com.azizaid.hub.model.enums.SupervisaoFilhos;
 import com.azizaid.hub.repository.FichaRepository;
@@ -11,6 +12,7 @@ import com.azizaid.hub.repository.TipoAcompanhamentoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -81,6 +83,52 @@ class FichaServiceTest {
         assertThrows(IllegalArgumentException.class, () -> fichaService.criar(dto));
 
         verify(fichaRepository, never()).save(any());
+    }
+
+    private static FichaRequestDTO comNecessidades(FichaRequestDTO b, Set<NecessidadeImediata> necessidades,
+                                                   String outraDescricao) {
+        return new FichaRequestDTO(b.numeroCaso(), b.nome(), b.cpf(), b.idade(), b.telefone(), b.estadoCivil(),
+                b.pessoasDependentes(), b.idadeFilhos(), b.nivelSeguranca(), b.tipoMoradia(),
+                b.tipoMoradiaOutraDescricao(), b.qtdMoradores(), b.qtdFilhos(), b.ondeMoramFilhos(),
+                b.supervisaoFilhos(), b.vagasNecessarias(), necessidades, outraDescricao, b.status());
+    }
+
+    private Ficha criarESalvar(FichaRequestDTO dto) {
+        when(fichaRepository.existsByCpf(dto.cpf())).thenReturn(false);
+        when(fichaRepository.buscarMaiorSequencialCodigo()).thenReturn(0);
+        when(fichaRepository.save(any(Ficha.class))).thenAnswer(inv -> inv.getArgument(0));
+        fichaService.criar(dto);
+        ArgumentCaptor<Ficha> captor = ArgumentCaptor.forClass(Ficha.class);
+        verify(fichaRepository).save(captor.capture());
+        return captor.getValue();
+    }
+
+    @Test
+    void criar_comOutraDescricaoPreenchida_marcaOutro() {
+        // Set.of() é imutável: o serviço não pode acrescentar OUTRO direto nele.
+        Ficha salva = criarESalvar(comNecessidades(construirDtoValido("12345678909"), Set.of(), "Documentos"));
+
+        assertEquals(Set.of(NecessidadeImediata.OUTRO), salva.getNecessidadesImediatas());
+    }
+
+    @Test
+    void criar_comOutraDescricaoEmBranco_naoMarcaOutro() {
+        Ficha salva = criarESalvar(comNecessidades(construirDtoValido("12345678909"), Set.of(), "  "));
+
+        assertTrue(salva.getNecessidadesImediatas().isEmpty());
+    }
+
+    @Test
+    void atualizar_comOutraDescricaoPreenchida_marcaOutroSemPerderAsOutras() {
+        Ficha ficha = Ficha.builder().id(1L).cpf("12345678909").build();
+        when(fichaRepository.findById(1L)).thenReturn(Optional.of(ficha));
+        when(fichaRepository.save(any(Ficha.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        fichaService.atualizar(1L, comNecessidades(construirDtoValido("12345678909"),
+                Set.of(NecessidadeImediata.APOIO_MORADIA), "Documentos"));
+
+        assertEquals(Set.of(NecessidadeImediata.APOIO_MORADIA, NecessidadeImediata.OUTRO),
+                ficha.getNecessidadesImediatas());
     }
 
     @Test

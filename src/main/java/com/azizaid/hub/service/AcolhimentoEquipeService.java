@@ -62,6 +62,19 @@ public class AcolhimentoEquipeService {
         acolhimento.setDependenteSofreuViolencia(dto.dependenteSofreuViolencia());
         acolhimento.setDependentePrecisaAuxilioMedico(dto.dependentePrecisaAuxilioMedico());
         acolhimento.setCategoriaClassificacao(dto.categoriaClassificacao());
+        acolhimento.setSugereSaudeGeral(dto.sugereSaudeGeral());
+        acolhimento.setSugereSaudeGeralQual(dto.sugereSaudeGeralQual());
+        acolhimento.setSugereSaudeMental(dto.sugereSaudeMental());
+        acolhimento.setSugereSaudeMentalQual(dto.sugereSaudeMentalQual());
+        acolhimento.setSugereHabitacao(dto.sugereHabitacao());
+        acolhimento.setSugereHabitacaoQual(dto.sugereHabitacaoQual());
+        acolhimento.setSugereTrabalhoEmprego(dto.sugereTrabalhoEmprego());
+        acolhimento.setSugereTrabalhoEmpregoQual(dto.sugereTrabalhoEmpregoQual());
+        acolhimento.setSugereAssistenciaSocial(dto.sugereAssistenciaSocial());
+        acolhimento.setSugereAssistenciaSocialQual(dto.sugereAssistenciaSocialQual());
+        acolhimento.setSugereAssistenciaEducacional(dto.sugereAssistenciaEducacional());
+        acolhimento.setSugereAssistenciaEducacionalQual(dto.sugereAssistenciaEducacionalQual());
+        acolhimento.setSugereOutro(dto.sugereOutro());
         acolhimento.setObservacoesRelevantes(dto.observacoesRelevantes());
         acolhimento.setResponsavelAcolhimentoJuridico(dto.responsavelAcolhimentoJuridico());
 
@@ -79,7 +92,12 @@ public class AcolhimentoEquipeService {
                 a.getFrequenciaViolencia(), a.getMedidasProtetivasAnteriores(), a.getAmeacasRelatadas(),
                 a.getNecessidadeAtendimentoMedicoImediato(), a.getAcompanhamentoSaudeMentalEmCurso(),
                 a.getAcompanhamentoSaudeMentalLocal(), a.getDependenteSofreuViolencia(),
-                a.getDependentePrecisaAuxilioMedico(), a.getCategoriaClassificacao(), a.getObservacoesRelevantes(),
+                a.getDependentePrecisaAuxilioMedico(), a.getCategoriaClassificacao(),
+                a.getSugereSaudeGeral(), a.getSugereSaudeGeralQual(), a.getSugereSaudeMental(),
+                a.getSugereSaudeMentalQual(), a.getSugereHabitacao(), a.getSugereHabitacaoQual(),
+                a.getSugereTrabalhoEmprego(), a.getSugereTrabalhoEmpregoQual(), a.getSugereAssistenciaSocial(),
+                a.getSugereAssistenciaSocialQual(), a.getSugereAssistenciaEducacional(),
+                a.getSugereAssistenciaEducacionalQual(), a.getSugereOutro(), a.getObservacoesRelevantes(),
                 a.getResponsavelAcolhimentoJuridico());
     }
 }

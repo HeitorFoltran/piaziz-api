@@ -83,6 +83,46 @@ public class AcolhimentoEquipe {
     @Column(name = "categoria_classificacao", length = 15)
     private CategoriaClassificacao categoriaClassificacao;
 
+    // Encaminhamentos sugeridos pela equipe (item 8 da Parte B do PIA). Null = não respondido.
+    @Column(name = "sugere_saude_geral")
+    private Boolean sugereSaudeGeral;
+
+    @Column(name = "sugere_saude_geral_qual", length = 200)
+    private String sugereSaudeGeralQual;
+
+    @Column(name = "sugere_saude_mental")
+    private Boolean sugereSaudeMental;
+
+    @Column(name = "sugere_saude_mental_qual", length = 200)
+    private String sugereSaudeMentalQual;
+
+    @Column(name = "sugere_habitacao")
+    private Boolean sugereHabitacao;
+
+    @Column(name = "sugere_habitacao_qual", length = 200)
+    private String sugereHabitacaoQual;
+
+    @Column(name = "sugere_trabalho_emprego")
+    private Boolean sugereTrabalhoEmprego;
+
+    @Column(name = "sugere_trabalho_emprego_qual", length = 200)
+    private String sugereTrabalhoEmpregoQual;
+
+    @Column(name = "sugere_assistencia_social")
+    private Boolean sugereAssistenciaSocial;
+
+    @Column(name = "sugere_assistencia_social_qual", length = 200)
+    private String sugereAssistenciaSocialQual;
+
+    @Column(name = "sugere_assistencia_educacional")
+    private Boolean sugereAssistenciaEducacional;
+
+    @Column(name = "sugere_assistencia_educacional_qual", length = 200)
+    private String sugereAssistenciaEducacionalQual;
+
+    @Column(name = "sugere_outro", length = 300)
+    private String sugereOutro;
+
     @Column(name = "observacoes_relevantes", length = 2000)
     private String observacoesRelevantes;
 

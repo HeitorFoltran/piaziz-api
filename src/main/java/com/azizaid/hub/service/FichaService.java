@@ -7,6 +7,7 @@ import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.model.TipoAcompanhamento;
 import com.azizaid.hub.model.enums.AcaoAlteracao;
+import com.azizaid.hub.model.enums.NecessidadeImediata;
 import com.azizaid.hub.model.enums.StatusFicha;
 import com.azizaid.hub.repository.FichaRepository;
 import com.azizaid.hub.repository.TipoAcompanhamentoRepository;
@@ -98,6 +99,7 @@ public class FichaService {
         if (dto.necessidadesImediatas() != null) ficha.setNecessidadesImediatas(dto.necessidadesImediatas());
         ficha.setNecessidadeOutraDescricao(dto.necessidadeOutraDescricao());
         ficha.setStatus(dto.status() != null ? dto.status() : StatusFicha.ATIVO);
+        marcarOutroSeTemDescricao(ficha);
 
         Ficha salvo = fichaRepository.save(ficha);
         return FichaResponseDTO.from(salvo);
@@ -132,6 +134,7 @@ public class FichaService {
         if (dto.necessidadesImediatas() != null) ficha.setNecessidadesImediatas(dto.necessidadesImediatas());
         ficha.setNecessidadeOutraDescricao(dto.necessidadeOutraDescricao());
         if (dto.status() != null) ficha.setStatus(dto.status());
+        marcarOutroSeTemDescricao(ficha);
 
         if (RetratoAuditoria.mudou(antes, retratoDados(ficha))) {
             registrar(ficha, "Ficha", AcaoAlteracao.EDITOU, null);
@@ -166,6 +169,21 @@ public class FichaService {
             registrar(ficha, "TiposAcompanhamento", AcaoAlteracao.ALTEROU_TIPOS, null);
         }
         return FichaResponseDTO.from(fichaRepository.save(ficha));
+    }
+
+    // "Outro, qual?" preenchido implica OUTRO marcado em "O que eu preciso agora". O contrário não:
+    // OUTRO sem descrição é permitido. Garantido aqui porque o link público (aprovado via criar) e
+    // clientes antigos mandam só a descrição. Novo set: o que veio do DTO pode ser imutável.
+    private void marcarOutroSeTemDescricao(Ficha ficha) {
+        String descricao = ficha.getNecessidadeOutraDescricao();
+        if (descricao == null || descricao.isBlank()) {
+            return;
+        }
+        Set<NecessidadeImediata> necessidades = ficha.getNecessidadesImediatas() != null
+                ? new HashSet<>(ficha.getNecessidadesImediatas()) : new HashSet<>();
+        if (necessidades.add(NecessidadeImediata.OUTRO)) {
+            ficha.setNecessidadesImediatas(necessidades);
+        }
     }
 
     // Campos gravados pelo PUT da ficha, exceto status e tipos de acompanhamento, que têm linha
