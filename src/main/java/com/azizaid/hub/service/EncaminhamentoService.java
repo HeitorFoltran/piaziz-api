@@ -45,7 +45,7 @@ public class EncaminhamentoService {
 
         if (ficha.getStatus() == StatusFicha.ENCERRADO) {
             throw new IllegalArgumentException(
-                    "Não é possível registrar encaminhamento em um acompanhamento encerrado");
+                    "Não é possível registrar encaminhamento em um acompanhamento arquivado");
         }
 
         if (dto.dataRetorno() != null && dto.dataEncaminhamento() != null

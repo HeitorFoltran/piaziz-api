@@ -69,6 +69,6 @@ class EncaminhamentoSystemTest extends PostgresTestContainerConfig {
                 "/api/fichas/{id}/encaminhamentos", criarEncaminhamentoRequisicao, String.class, fichaId);
 
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(resposta.getBody()).contains("encerrado");
+        assertThat(resposta.getBody()).contains("arquivado");
     }
 }
