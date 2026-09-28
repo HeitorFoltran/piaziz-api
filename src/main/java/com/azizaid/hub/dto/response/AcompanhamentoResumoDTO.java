@@ -14,6 +14,8 @@ public record AcompanhamentoResumoDTO(
         String status,
         LocalDateTime dataAtualizacao,
         LocalDateTime dataCriacao,
+        // Só o id: o front compara com o usuário logado ("Criados por mim"). Null em ficha antiga.
+        Long criadoPorId,
         List<TipoAcompanhamentoResponseDTO> tiposAcompanhamento
 ) {
 }

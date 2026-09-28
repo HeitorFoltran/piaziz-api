@@ -8,7 +8,10 @@ import com.azizaid.hub.repository.ServicoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class ServicoService {
@@ -23,8 +26,9 @@ public class ServicoService {
 
     @Transactional(readOnly = true)
     public List<ServicoResponseDTO> listar() {
+        Set<Long> emUso = new HashSet<>(servicoRepository.idsEmUso());
         return servicoRepository.findAll().stream()
-                .map(ServicoResponseDTO::from)
+                .map(s -> ServicoResponseDTO.from(s, emUso.contains(s.getId())))
                 .toList();
     }
 
@@ -38,7 +42,7 @@ public class ServicoService {
         }
         Servico servico = new Servico();
         servico.setNome(nome);
-        return ServicoResponseDTO.from(servicoRepository.save(servico));
+        return ServicoResponseDTO.from(servicoRepository.save(servico), false);
     }
 
     @Transactional
@@ -52,6 +56,29 @@ public class ServicoService {
         }
 
         servico.setNome(nome);
-        return ServicoResponseDTO.from(servicoRepository.save(servico));
+        return ServicoResponseDTO.from(servicoRepository.save(servico), emUso(id));
+    }
+
+    // Só exclui serviço que nunca foi usado. Um serviço com encaminhamento ou profissional ligado
+    // faz parte do histórico dos casos e não pode sumir.
+    @Transactional
+    public void excluir(Long id) {
+        Servico servico = servicoRepository.buscarParaExclusao(id)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Serviço", id));
+
+        long encaminhamentos = servicoRepository.contarEncaminhamentos(id);
+        long profissionais = servicoRepository.contarProfissionais(id);
+        if (encaminhamentos > 0 || profissionais > 0) {
+            List<String> usos = new ArrayList<>();
+            if (encaminhamentos > 0) usos.add(encaminhamentos + " encaminhamento(s)");
+            if (profissionais > 0) usos.add(profissionais + " profissional(is)");
+            throw new IllegalArgumentException("Não é possível excluir: o serviço está em uso em "
+                    + String.join(" e ", usos) + ".");
+        }
+        servicoRepository.delete(servico);
+    }
+
+    private boolean emUso(Long id) {
+        return servicoRepository.contarEncaminhamentos(id) > 0 || servicoRepository.contarProfissionais(id) > 0;
     }
 }
