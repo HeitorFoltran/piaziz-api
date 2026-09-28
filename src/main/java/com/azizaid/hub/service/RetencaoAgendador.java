@@ -15,13 +15,16 @@ public class RetencaoAgendador {
     private final RetencaoFichaPendenteService retencaoFichaPendenteService;
     private final RetencaoLeituraAuditService retencaoLeituraAuditService;
     private final RetencaoIpService retencaoIpService;
+    private final RetencaoConviteService retencaoConviteService;
 
     public RetencaoAgendador(RetencaoFichaPendenteService retencaoFichaPendenteService,
                              RetencaoLeituraAuditService retencaoLeituraAuditService,
-                             RetencaoIpService retencaoIpService) {
+                             RetencaoIpService retencaoIpService,
+                             RetencaoConviteService retencaoConviteService) {
         this.retencaoFichaPendenteService = retencaoFichaPendenteService;
         this.retencaoLeituraAuditService = retencaoLeituraAuditService;
         this.retencaoIpService = retencaoIpService;
+        this.retencaoConviteService = retencaoConviteService;
     }
 
     // Cada etapa isolada: uma falha é logada e as outras rodam mesmo assim.
@@ -30,6 +33,7 @@ public class RetencaoAgendador {
         executarEtapa("ficha_pendente", retencaoFichaPendenteService::aplicarRetencao);
         executarEtapa("leitura_audit_log", retencaoLeituraAuditService::aplicarRetencao);
         executarEtapa("IPs", retencaoIpService::limparIps);
+        executarEtapa("token_cifrado de convite", retencaoConviteService::limparTokensVencidos);
     }
 
     private void executarEtapa(String nome, Runnable etapa) {

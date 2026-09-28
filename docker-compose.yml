@@ -29,6 +29,7 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      CONVITE_TOKEN_KEY: ${CONVITE_TOKEN_KEY}
     ports:
       - "8081:8081"
 

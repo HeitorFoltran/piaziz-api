@@ -15,15 +15,23 @@ public interface ConviteFichaRepository extends JpaRepository<ConviteFicha, Long
 
     Optional<ConviteFicha> findByTokenHash(String tokenHash);
 
-    List<ConviteFicha> findByCriadoPorIdOrderByDataCriacaoDesc(Long criadoPorId);
+    List<ConviteFicha> findAllByOrderByDataCriacaoDesc();
 
     @Modifying
     @Query("""
-            UPDATE ConviteFicha c SET c.status = :statusUsado, c.usadoEm = :agora
+            UPDATE ConviteFicha c SET c.status = :statusUsado, c.usadoEm = :agora, c.tokenCifrado = NULL
             WHERE c.id = :id AND c.status = :statusAtivo
             """)
     int marcarComoUsadoSeAtivo(@Param("id") Long id,
                                 @Param("statusUsado") StatusConvite statusUsado,
                                 @Param("statusAtivo") StatusConvite statusAtivo,
                                 @Param("agora") LocalDateTime agora);
+
+    // Convite que vence sem ninguém abrir o link continua ATIVO no banco; aqui só some o token cifrado.
+    @Modifying
+    @Query("""
+            UPDATE ConviteFicha c SET c.tokenCifrado = NULL
+            WHERE c.dataExpiracao < :agora AND c.tokenCifrado IS NOT NULL
+            """)
+    int limparTokenCifradoVencidoAntesDe(@Param("agora") LocalDateTime agora);
 }

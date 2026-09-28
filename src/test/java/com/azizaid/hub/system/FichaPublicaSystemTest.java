@@ -1,5 +1,6 @@
 package com.azizaid.hub.system;
 
+import com.azizaid.hub.config.ConviteTokenService;
 import com.azizaid.hub.config.JwtService;
 import com.azizaid.hub.dto.request.AvaliacaoSocioeconomicaRequestDTO;
 import com.azizaid.hub.dto.request.FichaPendenteRejeitarRequestDTO;
@@ -14,7 +15,9 @@ import com.azizaid.hub.dto.response.FichaResponseDTO;
 import com.azizaid.hub.model.Profissional;
 import com.azizaid.hub.model.enums.PapelProfissional;
 import com.azizaid.hub.model.enums.ResultadoFichaPublica;
+import com.azizaid.hub.model.enums.StatusConvite;
 import com.azizaid.hub.model.enums.StatusFicha;
+import com.azizaid.hub.repository.ConviteFichaRepository;
 import com.azizaid.hub.repository.FichaPublicaAuditLogRepository;
 import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
@@ -47,6 +50,12 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
 
     @Autowired
     FichaPublicaAuditLogRepository fichaPublicaAuditLogRepository;
+
+    @Autowired
+    ConviteFichaRepository conviteFichaRepository;
+
+    @Autowired
+    ConviteTokenService conviteTokenService;
 
     private Profissional criarProfissional(PapelProfissional role, String email) {
         return profissionalRepository.save(Profissional.builder()
@@ -107,6 +116,12 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
                 "/api/ficha-publica/{token}/status", FichaPublicaStatusResponseDTO.class, token);
         assertThat(statusDepois.getBody().valido()).isFalse();
         assertThat(statusDepois.getBody().motivo()).isEqualTo("usado");
+
+        var conviteUsado = conviteFichaRepository.findByTokenHash(conviteTokenService.hash(token)).orElseThrow();
+        assertThat(conviteUsado.getStatus()).isEqualTo(StatusConvite.USADO);
+        assertThat(conviteUsado.getTokenCifrado())
+                .as("token_cifrado tem que ser apagado quando o convite é usado")
+                .isNull();
 
         Profissional revisor = criarProfissional(PapelProfissional.PADRAO, "revisor.system@azizaidhub.local");
         FichaPendenteResponseDTO pendente = buscarPendentePorCpf(revisor, "48291365709");

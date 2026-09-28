@@ -26,6 +26,11 @@ public class ConviteFicha {
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
 
+    // Só para mostrar o link de novo na lista; a validação é pelo token_hash. Vira NULL quando o
+    // convite deixa de valer (usado, cancelado, expirado).
+    @Column(name = "token_cifrado")
+    private String tokenCifrado;
+
     @Column(name = "criado_por_id", nullable = false)
     private Long criadoPorId;
 

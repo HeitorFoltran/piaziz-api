@@ -21,6 +21,9 @@ class RetencaoAgendadorTest {
     @Mock
     RetencaoIpService retencaoIpService;
 
+    @Mock
+    RetencaoConviteService retencaoConviteService;
+
     @InjectMocks
     RetencaoAgendador retencaoAgendador;
 
@@ -32,5 +35,6 @@ class RetencaoAgendadorTest {
 
         verify(retencaoLeituraAuditService).aplicarRetencao();
         verify(retencaoIpService).limparIps();
+        verify(retencaoConviteService).limparTokensVencidos();
     }
 }
