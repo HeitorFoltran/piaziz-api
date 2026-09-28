@@ -31,9 +31,9 @@ public class RetencaoFichaPendenteService {
         LocalDateTime agora = LocalDateTime.now();
 
         int aprovadas = fichaPendenteRepository.apagarRevisadasAntesDe(
-                StatusFichaPendente.APROVADA, agora.minusDays(properties.aprovadaDias()));
+                StatusFichaPendente.APROVADA, agora.minusDays(properties.fichaPendente().aprovadaDias()));
         int rejeitadas = fichaPendenteRepository.apagarRevisadasAntesDe(
-                StatusFichaPendente.REJEITADA, agora.minusDays(properties.rejeitadaDias()));
+                StatusFichaPendente.REJEITADA, agora.minusDays(properties.fichaPendente().rejeitadaDias()));
 
         // Só números: nunca id de convite, nome, CPF ou outro dado da linha.
         log.info("Retenção ficha_pendente: {} aprovada(s) e {} rejeitada(s) apagada(s)", aprovadas, rejeitadas);

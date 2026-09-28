@@ -35,11 +35,15 @@ class FichaServiceTest {
     @Mock
     TipoAcompanhamentoRepository tipoAcompanhamentoRepository;
 
+    @Mock
+    LeituraAuditService leituraAuditService;
+
     FichaService fichaService;
 
     @BeforeEach
     void setUp() {
-        fichaService = new FichaService(fichaRepository, entityAuditService, tipoAcompanhamentoRepository);
+        fichaService = new FichaService(fichaRepository, entityAuditService, tipoAcompanhamentoRepository,
+                leituraAuditService);
     }
 
     @Test

@@ -1,8 +1,10 @@
 package com.azizaid.hub.exception;
 
+import com.azizaid.hub.config.RequestIdFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -90,7 +92,10 @@ public class GlobalExceptionHandler {
             }
         }
         log.error("Erro inesperado em {}", request.getMethod(), ex);
-        return montar(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno");
+        // O requestId no corpo leva de quem reportou o erro ao stack trace no log. Só no 500.
+        ResponseEntity<Map<String, Object>> resposta = montar(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno");
+        resposta.getBody().put("requestId", MDC.get(RequestIdFilter.MDC_CHAVE));
+        return resposta;
     }
 
     private static String mensagemCliente(HttpStatus status) {

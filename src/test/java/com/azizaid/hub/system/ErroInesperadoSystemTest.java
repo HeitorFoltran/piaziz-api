@@ -50,5 +50,9 @@ class ErroInesperadoSystemTest extends PostgresTestContainerConfig {
         assertThat(resposta.getBody())
                 .contains("\"message\":\"Erro interno\"")
                 .doesNotContain("detalhe interno do teste");
+
+        String requestId = resposta.getHeaders().getFirst("X-Request-Id");
+        assertThat(requestId).isNotBlank();
+        assertThat(resposta.getBody()).contains("\"requestId\":\"" + requestId + "\"");
     }
 }
