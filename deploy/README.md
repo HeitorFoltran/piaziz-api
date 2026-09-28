@@ -80,10 +80,10 @@ Se o firewall do painel da Hostinger estiver ativo, libere as mesmas portas lá 
 - **Resto**:
 
   ```bash
-  sudo apt install -y git rsync age rclone apache2-utils
+  sudo apt install -y git rsync age rclone apache2-utils jq
   ```
 
-  O `apache2-utils` só é necessário pelo `htpasswd`, que gera o hash de senha do primeiro usuário.
+  O `apache2-utils` só é necessário pelo `htpasswd`, que gera o hash de senha do primeiro usuário. O `jq` serve para ler os logs da API, que em produção saem em JSON (ver "Ler os logs").
 
 ## 3. Código
 
@@ -374,6 +374,17 @@ Faça `git checkout <tag anterior>` e rode os mesmos comandos. O banco **não vo
 dcp ps                                                        # estado dos containers
 dcp logs --tail 200 api                                       # logs da API
 dcp exec db sh -c 'psql -U "$POSTGRES_USER" -d azizaid_hub'   # psql como dono
+```
+
+### Ler os logs
+
+Em produção, a API loga uma linha JSON por evento (formato ECS, `LOGGING_STRUCTURED_FORMAT_CONSOLE` no `docker-compose.prod.yml`). Toda linha gravada durante uma requisição tem o campo `requestId`, o mesmo UUID do header `X-Request-Id` da resposta. Num erro 500, ele também vem no corpo da resposta: quem reportar o erro manda o ID, e o ID leva ao stack trace.
+
+```bash
+# seguir uma requisição (--no-log-prefix tira o "api-1 | " do começo da linha; fromjson? pula o que não é JSON)
+dcp logs --no-log-prefix api | jq -R 'fromjson? | select(.requestId == "<id>")'
+# só os erros das últimas 24h
+dcp logs --no-log-prefix --since 24h api | jq -R 'fromjson? | select(.log.level == "ERROR")'
 ```
 
 Desativar uma conta e resetar senha agora se faz pela aba Profissionais (DEV ou gerenciador). Pelo banco, se precisar:

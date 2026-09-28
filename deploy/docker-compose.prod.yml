@@ -43,6 +43,8 @@ services:
       # LocalDateTime.now() usa o fuso da JVM; a imagem roda em UTC sem isso.
       TZ: America/Sao_Paulo
       SPRING_JPA_SHOW_SQL: "false"
+      # Log em JSON (ECS), com o requestId de cada requisição. Leitura com jq: deploy/README.md.
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
     # Só em 127.0.0.1: o Docker publica portas via iptables, por cima do ufw.
     # "8081:8081" deixaria a API aberta na internet sem passar pelo Caddy.
     ports:
