@@ -198,10 +198,10 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
                 "/api/fichas/{id}", HttpMethod.GET, new HttpEntity<Void>(headersAutenticados(revisor)),
                 FichaResponseDTO.class, aprovada.fichaId()).getBody();
         assertThat(fichaCriada.numeroCaso())
-                .as("numeroCaso enviado pelo intake público não pode vazar pra Ficha — é controlado pela equipe")
+                .as("numeroCaso enviado pelo intake público não pode vazar pra Ficha, é controlado pela equipe")
                 .isNotEqualTo("2024/999999");
         assertThat(fichaCriada.status())
-                .as("status enviado pelo intake público não pode vazar pra Ficha — é controlado pela equipe")
+                .as("status enviado pelo intake público não pode vazar pra Ficha, é controlado pela equipe")
                 .isEqualTo("ATIVO");
     }
 
