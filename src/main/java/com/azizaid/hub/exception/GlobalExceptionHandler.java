@@ -15,6 +15,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
@@ -77,6 +78,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleTipoParametro(MethodArgumentTypeMismatchException ex) {
         return montar(HttpStatus.BAD_REQUEST, "Parâmetro inválido: " + ex.getName());
+    }
+
+    // Bean Validation direto em @RequestParam (ex.: @Min/@Max no page/size da listagem).
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleValidacaoParametro(HandlerMethodValidationException ex) {
+        String erros = ex.getParameterValidationResults().stream()
+                .flatMap(r -> r.getResolvableErrors().stream()
+                        .map(e -> r.getMethodParameter().getParameterName() + ": " + e.getDefaultMessage()))
+                .collect(Collectors.joining("; "));
+        return montar(HttpStatus.BAD_REQUEST, erros.isEmpty() ? "Requisição inválida" : erros);
     }
 
     // Exceções padrão do Spring MVC (ErrorResponse) já carregam o status: 404, 405, 415 etc.
