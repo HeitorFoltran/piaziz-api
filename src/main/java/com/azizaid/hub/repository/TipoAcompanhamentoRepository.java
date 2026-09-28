@@ -20,10 +20,17 @@ public interface TipoAcompanhamentoRepository extends JpaRepository<TipoAcompanh
     @Query("SELECT t FROM TipoAcompanhamento t WHERE t.id = :id")
     Optional<TipoAcompanhamento> buscarParaExclusao(@Param("id") Long id);
 
-    @Query(value = "SELECT COUNT(*) FROM ficha_tipo_acompanhamento WHERE tipo_acompanhamento_id = :id",
-            nativeQuery = true)
+    // O JOIN com ficha ignora vínculo órfão (banco sem a FK fk_fta_ficha, ver
+    // db/alteracoes/2026-09-fk-ficha-tipo-acompanhamento.sql): só conta caso que existe.
+    @Query(value = """
+            SELECT COUNT(*) FROM ficha_tipo_acompanhamento fta JOIN ficha f ON f.id = fta.ficha_id
+            WHERE fta.tipo_acompanhamento_id = :id
+            """, nativeQuery = true)
     long contarFichas(@Param("id") Long id);
 
-    @Query(value = "SELECT DISTINCT tipo_acompanhamento_id FROM ficha_tipo_acompanhamento", nativeQuery = true)
+    @Query(value = """
+            SELECT DISTINCT fta.tipo_acompanhamento_id
+            FROM ficha_tipo_acompanhamento fta JOIN ficha f ON f.id = fta.ficha_id
+            """, nativeQuery = true)
     List<Long> idsEmUso();
 }
