@@ -13,8 +13,6 @@ public interface EncaminhamentoRepository extends JpaRepository<Encaminhamento, 
 
     List<Encaminhamento> findByFichaIdOrderByDataEncaminhamentoDescIdDesc(Long fichaId);
 
-    Optional<Encaminhamento> findTopByFichaIdOrderByDataEncaminhamentoDescIdDesc(Long fichaId);
-
     @Query("""
             SELECT COUNT(DISTINCT e.ficha.id) FROM Encaminhamento e
             WHERE e.dataRetorno IS NULL OR e.dataRetorno >= :hoje
