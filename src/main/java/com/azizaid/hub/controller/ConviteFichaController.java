@@ -28,7 +28,7 @@ public class ConviteFichaController {
 
     @GetMapping
     public List<ConviteFichaResponseDTO> listar() {
-        return conviteFichaService.listarMeusConvites();
+        return conviteFichaService.listar();
     }
 
     @PostMapping("/{id}/cancelar")

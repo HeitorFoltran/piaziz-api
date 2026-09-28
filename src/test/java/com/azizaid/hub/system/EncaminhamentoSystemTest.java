@@ -39,7 +39,7 @@ class EncaminhamentoSystemTest extends PostgresTestContainerConfig {
     ProfissionalRepository profissionalRepository;
 
     @Test
-    void postEncaminhamento_comFichaEncerrada_retorna400() {
+    void postEncaminhamento_comFichaArquivada_retorna400() {
         String token = persistirComToken(profissionalRepository, jwtService, PapelProfissional.PADRAO);
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
@@ -53,7 +53,7 @@ class EncaminhamentoSystemTest extends PostgresTestContainerConfig {
 
         HttpEntity<Void> atualizarStatusRequisicao = new HttpEntity<>(headers);
         ResponseEntity<FichaResponseDTO> statusAtualizado = restTemplate.exchange(
-                "/api/fichas/{id}/status?status=ENCERRADO",
+                "/api/fichas/{id}/status?status=ARQUIVADO",
                 org.springframework.http.HttpMethod.PATCH,
                 atualizarStatusRequisicao,
                 FichaResponseDTO.class,
@@ -69,6 +69,6 @@ class EncaminhamentoSystemTest extends PostgresTestContainerConfig {
                 "/api/fichas/{id}/encaminhamentos", criarEncaminhamentoRequisicao, String.class, fichaId);
 
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(resposta.getBody()).contains("encerrado");
+        assertThat(resposta.getBody()).contains("arquivado");
     }
 }

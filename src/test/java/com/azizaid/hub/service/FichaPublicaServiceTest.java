@@ -126,7 +126,7 @@ class FichaPublicaServiceTest {
         FichaRequestDTO fichaDto = new FichaRequestDTO(
                 "2024/999999", "Vítima Teste", "12345678909", 30, "11999999999",
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                com.azizaid.hub.model.enums.StatusFicha.ENCERRADO);
+                com.azizaid.hub.model.enums.StatusFicha.ARQUIVADO);
         FichaPublicaRequestDTO dto = new FichaPublicaRequestDTO(fichaDto, null, null, null);
 
         fichaPublicaService.submeter("tok", dto, "127.0.0.1");

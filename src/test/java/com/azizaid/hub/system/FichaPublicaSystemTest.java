@@ -1,5 +1,6 @@
 package com.azizaid.hub.system;
 
+import com.azizaid.hub.config.ConviteTokenService;
 import com.azizaid.hub.config.JwtService;
 import com.azizaid.hub.dto.request.AvaliacaoSocioeconomicaRequestDTO;
 import com.azizaid.hub.dto.request.FichaPendenteRejeitarRequestDTO;
@@ -14,7 +15,9 @@ import com.azizaid.hub.dto.response.FichaResponseDTO;
 import com.azizaid.hub.model.Profissional;
 import com.azizaid.hub.model.enums.PapelProfissional;
 import com.azizaid.hub.model.enums.ResultadoFichaPublica;
+import com.azizaid.hub.model.enums.StatusConvite;
 import com.azizaid.hub.model.enums.StatusFicha;
+import com.azizaid.hub.repository.ConviteFichaRepository;
 import com.azizaid.hub.repository.FichaPublicaAuditLogRepository;
 import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
@@ -47,6 +50,12 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
 
     @Autowired
     FichaPublicaAuditLogRepository fichaPublicaAuditLogRepository;
+
+    @Autowired
+    ConviteFichaRepository conviteFichaRepository;
+
+    @Autowired
+    ConviteTokenService conviteTokenService;
 
     private Profissional criarProfissional(PapelProfissional role, String email) {
         return profissionalRepository.save(Profissional.builder()
@@ -108,6 +117,12 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
         assertThat(statusDepois.getBody().valido()).isFalse();
         assertThat(statusDepois.getBody().motivo()).isEqualTo("usado");
 
+        var conviteUsado = conviteFichaRepository.findByTokenHash(conviteTokenService.hash(token)).orElseThrow();
+        assertThat(conviteUsado.getStatus()).isEqualTo(StatusConvite.USADO);
+        assertThat(conviteUsado.getTokenCifrado())
+                .as("token_cifrado tem que ser apagado quando o convite é usado")
+                .isNull();
+
         Profissional revisor = criarProfissional(PapelProfissional.PADRAO, "revisor.system@azizaidhub.local");
         FichaPendenteResponseDTO pendente = buscarPendentePorCpf(revisor, "48291365709");
         assertThat(pendente.nome()).isEqualTo("Maria da Silva");
@@ -167,7 +182,7 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
         FichaRequestDTO fichaDto = new FichaRequestDTO(
                 "2024/999999", "Carla Pereira", "16899622084", 30, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                StatusFicha.ENCERRADO);
+                StatusFicha.ARQUIVADO);
         FichaPublicaRequestDTO submissaoDto = new FichaPublicaRequestDTO(fichaDto, null, null, null);
         restTemplate.postForEntity("/api/ficha-publica/{token}", submissaoDto,
                 FichaPublicaSubmissaoResponseDTO.class, token);
@@ -183,10 +198,10 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
                 "/api/fichas/{id}", HttpMethod.GET, new HttpEntity<Void>(headersAutenticados(revisor)),
                 FichaResponseDTO.class, aprovada.fichaId()).getBody();
         assertThat(fichaCriada.numeroCaso())
-                .as("numeroCaso enviado pelo intake público não pode vazar pra Ficha — é controlado pela equipe")
+                .as("numeroCaso enviado pelo intake público não pode vazar pra Ficha, é controlado pela equipe")
                 .isNotEqualTo("2024/999999");
         assertThat(fichaCriada.status())
-                .as("status enviado pelo intake público não pode vazar pra Ficha — é controlado pela equipe")
+                .as("status enviado pelo intake público não pode vazar pra Ficha, é controlado pela equipe")
                 .isEqualTo("ATIVO");
     }
 

@@ -108,9 +108,10 @@ sudo install -d -m 700 -o $USER -g $USER /etc/azizaid
 openssl rand -base64 32     # senha do dono do banco
 openssl rand -base64 32     # senha do app
 openssl rand -base64 48     # JWT_SECRET
+openssl rand -base64 32     # CONVITE_TOKEN_KEY
 ```
 
-Todos os valores são **novos**. Nada vem da homologação nem do `.env` local. O JWT identifica o usuário só pelo id, então um `JWT_SECRET` repetido faria um token de homologação valer como o mesmo id em produção. Guarde os três no gerenciador de senhas.
+Todos os valores são **novos**. Nada vem da homologação nem do `.env` local. O JWT identifica o usuário só pelo id, então um `JWT_SECRET` repetido faria um token de homologação valer como o mesmo id em produção. A `CONVITE_TOKEN_KEY` também é nova: é ela que permite mostrar de novo o link dos convites na lista. Guarde os quatro no gerenciador de senhas.
 
 `/etc/azizaid/db.env`:
 
@@ -125,6 +126,7 @@ POSTGRES_PASSWORD=<senha do dono>
 DB_USERNAME=azizaid_app
 DB_PASSWORD=<senha do app>
 JWT_SECRET=<jwt secret>
+CONVITE_TOKEN_KEY=<chave dos convites>
 FRONTEND_BASE_URL=https://<dominio>
 CORS_ALLOWED_ORIGINS=https://<dominio>
 ```

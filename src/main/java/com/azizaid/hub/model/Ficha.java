@@ -3,6 +3,7 @@ package com.azizaid.hub.model;
 import com.azizaid.hub.model.enums.NecessidadeImediata;
 import com.azizaid.hub.model.enums.OndeMoramFilhos;
 import com.azizaid.hub.model.enums.StatusFicha;
+import com.azizaid.hub.model.enums.StatusFichaConverter;
 import com.azizaid.hub.model.enums.SupervisaoFilhos;
 import com.azizaid.hub.model.enums.TipoMoradia;
 import com.azizaid.hub.model.enums.VagaNecessaria;
@@ -109,7 +110,7 @@ public class Ficha {
     @Column(name = "data_atualizacao", nullable = false)
     private LocalDateTime dataAtualizacao;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = StatusFichaConverter.class)
     @Column(nullable = false, length = 10)
     private StatusFicha status;
 
