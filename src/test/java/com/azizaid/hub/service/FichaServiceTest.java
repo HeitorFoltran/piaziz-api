@@ -3,6 +3,9 @@ package com.azizaid.hub.service;
 import com.azizaid.hub.dto.request.FichaRequestDTO;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.model.TipoAcompanhamento;
+import com.azizaid.hub.model.enums.AcaoAlteracao;
+import com.azizaid.hub.model.enums.StatusFicha;
+import com.azizaid.hub.model.enums.SupervisaoFilhos;
 import com.azizaid.hub.repository.FichaRepository;
 import com.azizaid.hub.repository.TipoAcompanhamentoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -119,5 +124,113 @@ class FichaServiceTest {
         fichaService.atribuirTiposAcompanhamento(1L, List.of());
 
         assertTrue(ficha.getTiposAcompanhamento().isEmpty());
+    }
+
+    // Ficha no estado que o PUT com construirDtoValido(cpf) deixaria, criada pelo profissional 7.
+    private Ficha fichaIgualAoDto(String cpf, StatusFicha status) {
+        FichaRequestDTO dto = construirDtoValido(cpf);
+        return Ficha.builder().id(1L).criadoPorId(7L).numeroCaso("2026/000001").nome(dto.nome()).cpf(dto.cpf())
+                .idade(dto.idade()).telefone(dto.telefone()).estadoCivil(dto.estadoCivil())
+                .pessoasDependentes(dto.pessoasDependentes()).nivelSeguranca(dto.nivelSeguranca())
+                .qtdMoradores(dto.qtdMoradores()).qtdFilhos(dto.qtdFilhos()).status(status).build();
+    }
+
+    private static FichaRequestDTO dtoCom(String cpf, String telefone, SupervisaoFilhos supervisao, StatusFicha status) {
+        FichaRequestDTO base = construirDtoValido(cpf);
+        return new FichaRequestDTO(base.numeroCaso(), base.nome(), base.cpf(), base.idade(), telefone,
+                base.estadoCivil(), base.pessoasDependentes(), base.idadeFilhos(), base.nivelSeguranca(),
+                base.tipoMoradia(), base.tipoMoradiaOutraDescricao(), base.qtdMoradores(), base.qtdFilhos(),
+                base.ondeMoramFilhos(), supervisao, base.vagasNecessarias(), base.necessidadesImediatas(),
+                base.necessidadeOutraDescricao(), status);
+    }
+
+    private void stubAtualizar(Ficha ficha) {
+        when(fichaRepository.findById(1L)).thenReturn(Optional.of(ficha));
+        when(fichaRepository.save(any(Ficha.class))).thenAnswer(inv -> inv.getArgument(0));
+    }
+
+    @Test
+    void atualizar_semMudarNada_naoRegistra() {
+        stubAtualizar(fichaIgualAoDto("12345678909", StatusFicha.ATIVO));
+
+        fichaService.atualizar(1L, construirDtoValido("12345678909"));
+
+        verifyNoInteractions(entityAuditService);
+    }
+
+    @Test
+    void atualizar_mudandoTelefone_registraEditouSemValorDeCampo() {
+        stubAtualizar(fichaIgualAoDto("12345678909", StatusFicha.ATIVO));
+
+        fichaService.atualizar(1L, dtoCom("12345678909", "45988887777", null, null));
+
+        verify(entityAuditService).registrar(eq("Ficha"), eq(1L), eq(7L), eq(1L), eq(AcaoAlteracao.EDITOU), isNull());
+        verifyNoMoreInteractions(entityAuditService);
+    }
+
+    @Test
+    void atualizar_mudandoSoSupervisaoFilhos_registraEditou() {
+        stubAtualizar(fichaIgualAoDto("12345678909", StatusFicha.ATIVO));
+
+        fichaService.atualizar(1L, dtoCom("12345678909", "11999999999", SupervisaoFilhos.SIM, null));
+
+        verify(entityAuditService).registrar(eq("Ficha"), eq(1L), eq(7L), eq(1L), eq(AcaoAlteracao.EDITOU), isNull());
+    }
+
+    @Test
+    void atualizar_mudandoSoOStatus_registraSoMudouStatus() {
+        stubAtualizar(fichaIgualAoDto("12345678909", StatusFicha.ATIVO));
+
+        fichaService.atualizar(1L, dtoCom("12345678909", "11999999999", null, StatusFicha.ARQUIVADO));
+
+        verify(entityAuditService).registrar("StatusFicha", 1L, 7L, 1L, AcaoAlteracao.MUDOU_STATUS, "Ativo -> Arquivado");
+        verifyNoMoreInteractions(entityAuditService);
+    }
+
+    @Test
+    void atualizarStatus_deAtivoParaArquivado_registraMudouStatus() {
+        stubAtualizar(fichaIgualAoDto("12345678909", StatusFicha.ATIVO));
+
+        fichaService.atualizarStatus(1L, StatusFicha.ARQUIVADO);
+
+        verify(entityAuditService).registrar("StatusFicha", 1L, 7L, 1L, AcaoAlteracao.MUDOU_STATUS, "Ativo -> Arquivado");
+    }
+
+    @Test
+    void atualizarStatus_paraOMesmoStatus_naoRegistra() {
+        stubAtualizar(fichaIgualAoDto("12345678909", StatusFicha.ATIVO));
+
+        fichaService.atualizarStatus(1L, StatusFicha.ATIVO);
+
+        verifyNoInteractions(entityAuditService);
+    }
+
+    @Test
+    void atribuirTiposAcompanhamento_mesmosIdsEmOutraOrdem_naoRegistra() {
+        TipoAcompanhamento t1 = TipoAcompanhamento.builder().id(10L).nome("Jurídico").build();
+        TipoAcompanhamento t2 = TipoAcompanhamento.builder().id(20L).nome("Psicológico").build();
+        Ficha ficha = Ficha.builder().id(1L).tiposAcompanhamento(new HashSet<>(Set.of(t1, t2))).build();
+        when(fichaRepository.findById(1L)).thenReturn(Optional.of(ficha));
+        when(tipoAcompanhamentoRepository.findAllById(List.of(20L, 10L))).thenReturn(List.of(t2, t1));
+        when(fichaRepository.save(any(Ficha.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        fichaService.atribuirTiposAcompanhamento(1L, List.of(20L, 10L));
+
+        verifyNoInteractions(entityAuditService);
+    }
+
+    @Test
+    void atribuirTiposAcompanhamento_comUmIdAMais_registraAlterouTipos() {
+        TipoAcompanhamento t1 = TipoAcompanhamento.builder().id(10L).nome("Jurídico").build();
+        TipoAcompanhamento t2 = TipoAcompanhamento.builder().id(20L).nome("Psicológico").build();
+        Ficha ficha = Ficha.builder().id(1L).criadoPorId(7L).tiposAcompanhamento(new HashSet<>(Set.of(t1))).build();
+        when(fichaRepository.findById(1L)).thenReturn(Optional.of(ficha));
+        when(tipoAcompanhamentoRepository.findAllById(List.of(10L, 20L))).thenReturn(List.of(t1, t2));
+        when(fichaRepository.save(any(Ficha.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        fichaService.atribuirTiposAcompanhamento(1L, List.of(10L, 20L));
+
+        verify(entityAuditService).registrar(eq("TiposAcompanhamento"), eq(1L), eq(7L), eq(1L),
+                eq(AcaoAlteracao.ALTEROU_TIPOS), isNull());
     }
 }

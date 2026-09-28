@@ -6,10 +6,12 @@ import com.azizaid.hub.dto.response.FichaResponseDTO;
 import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.model.TipoAcompanhamento;
+import com.azizaid.hub.model.enums.AcaoAlteracao;
 import com.azizaid.hub.model.enums.StatusFicha;
 import com.azizaid.hub.repository.FichaRepository;
 import com.azizaid.hub.repository.TipoAcompanhamentoRepository;
 import com.azizaid.hub.util.CpfUtils;
+import com.azizaid.hub.util.RetratoAuditoria;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,7 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class FichaService {
@@ -106,7 +109,9 @@ public class FichaService {
         if (!CpfUtils.isValido(dto.cpf())) {
             throw new IllegalArgumentException("CPF inválido");
         }
-        registrarEdicaoCrossUserSeAplicavel(ficha);
+        List<Object> antes = retratoDados(ficha);
+        StatusFicha statusAntes = ficha.getStatus();
+
         ficha.setNome(dto.nome());
         ficha.setCpf(dto.cpf());
         ficha.setNumeroCaso(dto.numeroCaso() != null && !dto.numeroCaso().isBlank()
@@ -127,34 +132,67 @@ public class FichaService {
         if (dto.necessidadesImediatas() != null) ficha.setNecessidadesImediatas(dto.necessidadesImediatas());
         ficha.setNecessidadeOutraDescricao(dto.necessidadeOutraDescricao());
         if (dto.status() != null) ficha.setStatus(dto.status());
+
+        if (RetratoAuditoria.mudou(antes, retratoDados(ficha))) {
+            registrar(ficha, "Ficha", AcaoAlteracao.EDITOU, null);
+        }
+        registrarMudancaDeStatus(ficha, statusAntes);
         return FichaResponseDTO.from(fichaRepository.save(ficha));
     }
 
     @Transactional
     public FichaResponseDTO atualizarStatus(Long id, StatusFicha novoStatus) {
         Ficha ficha = buscarEntidade(id);
-        registrarEdicaoCrossUserSeAplicavel(ficha);
+        StatusFicha statusAntes = ficha.getStatus();
         ficha.setStatus(novoStatus);
+        registrarMudancaDeStatus(ficha, statusAntes);
         return FichaResponseDTO.from(fichaRepository.save(ficha));
     }
 
     @Transactional
     public FichaResponseDTO atribuirTiposAcompanhamento(Long fichaId, List<Long> tipoIds) {
         Ficha ficha = buscarEntidade(fichaId);
-        registrarEdicaoCrossUserSeAplicavel(ficha);
 
         Set<TipoAcompanhamento> tipos = new HashSet<>(tipoAcompanhamentoRepository.findAllById(tipoIds));
         if (tipos.size() != new HashSet<>(tipoIds).size()) {
             throw new IllegalArgumentException("Um ou mais tipos de acompanhamento informados não existem");
         }
 
+        Set<Long> idsAntes = ficha.getTiposAcompanhamento().stream()
+                .map(TipoAcompanhamento::getId)
+                .collect(Collectors.toSet());
         ficha.setTiposAcompanhamento(tipos);
+        if (!idsAntes.equals(new HashSet<>(tipoIds))) {
+            registrar(ficha, "TiposAcompanhamento", AcaoAlteracao.ALTEROU_TIPOS, null);
+        }
         return FichaResponseDTO.from(fichaRepository.save(ficha));
     }
 
-    private void registrarEdicaoCrossUserSeAplicavel(Ficha ficha) {
+    // Campos gravados pelo PUT da ficha, exceto status e tipos de acompanhamento, que têm linha
+    // própria no histórico. Datas de atualização e editor ficam fora: mudam no flush.
+    private List<Object> retratoDados(Ficha f) {
+        return RetratoAuditoria.de(f.getNome(), f.getCpf(), f.getNumeroCaso(), f.getIdade(), f.getTelefone(),
+                f.getEstadoCivil(), f.getPessoasDependentes(), f.getIdadeFilhos(), f.getNivelSeguranca(),
+                f.getTipoMoradia(), f.getTipoMoradiaOutraDescricao(), f.getQtdMoradores(), f.getQtdFilhos(),
+                f.getOndeMoramFilhos(), f.getSupervisaoFilhos(), f.getVagasNecessarias(),
+                f.getNecessidadesImediatas(), f.getNecessidadeOutraDescricao());
+    }
+
+    private void registrarMudancaDeStatus(Ficha ficha, StatusFicha statusAntes) {
+        if (ficha.getStatus() == statusAntes) {
+            return;
+        }
+        registrar(ficha, "StatusFicha", AcaoAlteracao.MUDOU_STATUS,
+                rotulo(statusAntes) + " -> " + rotulo(ficha.getStatus()));
+    }
+
+    private void registrar(Ficha ficha, String tipoEntidade, AcaoAlteracao acao, String detalhe) {
         Long donoId = ficha.getCriadoPorId() != null ? ficha.getCriadoPorId() : ficha.getUltimoEditorId();
-        entityAuditService.registrarSeCrossUser("Ficha", ficha.getId(), donoId, ficha.getId());
+        entityAuditService.registrar(tipoEntidade, ficha.getId(), donoId, ficha.getId(), acao, detalhe);
+    }
+
+    private static String rotulo(StatusFicha status) {
+        return status != null ? status.getLabel() : "-";
     }
 
     private String gerarCodigoFicha(int sequencial) {

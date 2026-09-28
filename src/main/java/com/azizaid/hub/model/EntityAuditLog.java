@@ -1,5 +1,6 @@
 package com.azizaid.hub.model;
 
+import com.azizaid.hub.model.enums.AcaoAlteracao;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,6 +43,15 @@ public class EntityAuditLog {
 
     @Column(length = 300)
     private String resumo;
+
+    // NULL nas linhas anteriores ao lote 5; a leitura trata como EDITOU.
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private AcaoAlteracao acao;
+
+    // Só metadado da alteração (ex.: "Ativo -> Arquivado"), nunca valor de campo.
+    @Column(length = 120)
+    private String detalhe;
 
     @PrePersist
     public void prePersist() {

@@ -1,11 +1,17 @@
 package com.azizaid.hub.system;
 
 import com.azizaid.hub.config.JwtService;
+import com.azizaid.hub.dto.request.AcolhimentoEquipeRequestDTO;
 import com.azizaid.hub.dto.request.FichaRequestDTO;
 import com.azizaid.hub.dto.request.AvaliacaoSocioeconomicaRequestDTO;
+import com.azizaid.hub.dto.request.HistoricoAtendimentoRequestDTO;
 import com.azizaid.hub.dto.response.AlteracaoFichaResponseDTO;
 import com.azizaid.hub.dto.response.FichaResponseDTO;
+import com.azizaid.hub.model.EntityAuditLog;
+import com.azizaid.hub.model.enums.AcaoAlteracao;
 import com.azizaid.hub.model.enums.PapelProfissional;
+import com.azizaid.hub.model.enums.TipoViolencia;
+import com.azizaid.hub.repository.EntityAuditLogRepository;
 import com.azizaid.hub.repository.ProfissionalRepository;
 import com.azizaid.hub.support.PostgresTestContainerConfig;
 import org.junit.jupiter.api.Test;
@@ -17,6 +23,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Set;
 
 import static com.azizaid.hub.support.FichaTestFactory.construirDtoValido;
 import static com.azizaid.hub.support.ProfissionalTestFactory.persistirComToken;
@@ -34,6 +44,9 @@ class FichaAlteracaoSystemTest extends PostgresTestContainerConfig {
     @Autowired
     ProfissionalRepository profissionalRepository;
 
+    @Autowired
+    EntityAuditLogRepository entityAuditLogRepository;
+
     private HttpHeaders headersPara(String token) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
@@ -49,10 +62,36 @@ class FichaAlteracaoSystemTest extends PostgresTestContainerConfig {
     }
 
     private AvaliacaoSocioeconomicaRequestDTO avaliacaoVazia() {
+        return avaliacao(null, null);
+    }
+
+    private AvaliacaoSocioeconomicaRequestDTO avaliacao(Boolean temRenda, BigDecimal valorRenda) {
         return new AvaliacaoSocioeconomicaRequestDTO(
-                null, null, null, null, null, null, null, null, null, null, null, null,
+                temRenda, valorRenda, null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null);
+    }
+
+    private static FichaRequestDTO comTelefone(FichaRequestDTO b, String telefone) {
+        return new FichaRequestDTO(b.numeroCaso(), b.nome(), b.cpf(), b.idade(), telefone, b.estadoCivil(),
+                b.pessoasDependentes(), b.idadeFilhos(), b.nivelSeguranca(), b.tipoMoradia(),
+                b.tipoMoradiaOutraDescricao(), b.qtdMoradores(), b.qtdFilhos(), b.ondeMoramFilhos(),
+                b.supervisaoFilhos(), b.vagasNecessarias(), b.necessidadesImediatas(),
+                b.necessidadeOutraDescricao(), b.status());
+    }
+
+    private void put(String url, Object corpo, String token, Long fichaId) {
+        ResponseEntity<String> resposta = restTemplate.exchange(url, HttpMethod.PUT,
+                new HttpEntity<>(corpo, headersPara(token)), String.class, fichaId);
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    private AlteracaoFichaResponseDTO[] listarAlteracoes(String token, Long fichaId) {
+        ResponseEntity<AlteracaoFichaResponseDTO[]> resposta = restTemplate.exchange(
+                "/api/fichas/{id}/alteracoes", HttpMethod.GET,
+                new HttpEntity<>(headersPara(token)), AlteracaoFichaResponseDTO[].class, fichaId);
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        return resposta.getBody();
     }
 
     @Test
@@ -63,7 +102,7 @@ class FichaAlteracaoSystemTest extends PostgresTestContainerConfig {
         Long fichaId = criarFicha(tokenA, "66048764707");
 
         HttpEntity<FichaRequestDTO> atualizacao =
-                new HttpEntity<>(construirDtoValido("66048764707"), headersPara(tokenB));
+                new HttpEntity<>(comTelefone(construirDtoValido("66048764707"), "45988887777"), headersPara(tokenB));
         restTemplate.exchange("/api/fichas/{id}", HttpMethod.PUT, atualizacao, FichaResponseDTO.class, fichaId);
 
         ResponseEntity<AlteracaoFichaResponseDTO[]> resposta = restTemplate.exchange(
@@ -79,19 +118,58 @@ class FichaAlteracaoSystemTest extends PostgresTestContainerConfig {
     }
 
     @Test
-    void get_comEdicaoPeloProprioCriador_naoGeraLinha() {
+    void edicaoPelaPropriaCriadora_gravaEditouSemValorDeCampo() {
         String tokenA = persistirComToken(profissionalRepository, jwtService, PapelProfissional.PADRAO, "Ana Criadora");
         Long fichaId = criarFicha(tokenA, "29141777638");
 
-        HttpEntity<FichaRequestDTO> atualizacao =
-                new HttpEntity<>(construirDtoValido("29141777638"), headersPara(tokenA));
-        restTemplate.exchange("/api/fichas/{id}", HttpMethod.PUT, atualizacao, FichaResponseDTO.class, fichaId);
+        put("/api/fichas/{id}", comTelefone(construirDtoValido("29141777638"), "45988887777"), tokenA, fichaId);
 
-        ResponseEntity<AlteracaoFichaResponseDTO[]> resposta = restTemplate.exchange(
-                "/api/fichas/{id}/alteracoes", HttpMethod.GET,
-                new HttpEntity<>(headersPara(tokenA)), AlteracaoFichaResponseDTO[].class, fichaId);
+        List<EntityAuditLog> linhas = entityAuditLogRepository.findByFichaIdOrderByTimestampDesc(fichaId);
+        assertThat(linhas).hasSize(1);
+        EntityAuditLog linha = linhas.get(0);
+        assertThat(linha.getAcao()).isEqualTo(AcaoAlteracao.EDITOU);
+        assertThat(linha.getEditorId()).isEqualTo(linha.getDonoId());
+        assertThat(linha.getDetalhe()).isNull();
+        assertThat(linha.getResumo()).doesNotContain("45988887777").doesNotContain("11999999999");
+    }
 
-        assertThat(resposta.getBody()).isEmpty();
+    @Test
+    void salvarAsQuatroPartesSemMudarNada_naoGravaNada() {
+        String tokenA = persistirComToken(profissionalRepository, jwtService, PapelProfissional.PADRAO, "Ana Criadora");
+        FichaRequestDTO ficha = construirDtoValido("41823657982");
+        Long fichaId = criarFicha(tokenA, "41823657982");
+        TipoViolencia[] tipos = TipoViolencia.values();
+        AcolhimentoEquipeRequestDTO acolhimento = new AcolhimentoEquipeRequestDTO(null, null, "", Set.of(tipos[0], tipos[1]),
+                null, null, true, null, null, null, null, null, null, null, "", null);
+        HistoricoAtendimentoRequestDTO historico = new HistoricoAtendimentoRequestDTO(true, "", null, null, null,
+                null, null, null, null);
+
+        // Como a tela de Nova Ficha e a de edição fazem: as quatro partes a cada salvamento. A primeira
+        // rodada cria as partes junto com o caso (dentro da janela de criação), a segunda não muda nada.
+        for (int i = 0; i < 2; i++) {
+            put("/api/fichas/{id}", ficha, tokenA, fichaId);
+            put("/api/fichas/{id}/avaliacao-socioeconomica", avaliacao(true, new BigDecimal("1500")), tokenA, fichaId);
+            put("/api/fichas/{id}/acolhimento-equipe", acolhimento, tokenA, fichaId);
+            put("/api/fichas/{id}/historico-atendimento", historico, tokenA, fichaId);
+        }
+
+        assertThat(entityAuditLogRepository.findByFichaIdOrderByTimestampDesc(fichaId)).isEmpty();
+    }
+
+    @Test
+    void mudarStatus_gravaMudouStatusComOsRotulos() {
+        String tokenA = persistirComToken(profissionalRepository, jwtService, PapelProfissional.PADRAO, "Ana Criadora");
+        Long fichaId = criarFicha(tokenA, "73519482673");
+
+        ResponseEntity<String> resposta = restTemplate.exchange("/api/fichas/{id}/status?status=ARQUIVADO",
+                HttpMethod.PATCH, new HttpEntity<>(headersPara(tokenA)), String.class, fichaId);
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        List<EntityAuditLog> linhas = entityAuditLogRepository.findByFichaIdOrderByTimestampDesc(fichaId);
+        assertThat(linhas).hasSize(1);
+        assertThat(linhas.get(0).getAcao()).isEqualTo(AcaoAlteracao.MUDOU_STATUS);
+        assertThat(linhas.get(0).getTipoEntidade()).isEqualTo("StatusFicha");
+        assertThat(linhas.get(0).getDetalhe()).isEqualTo("Ativo -> Arquivado");
     }
 
     @Test
@@ -107,7 +185,7 @@ class FichaAlteracaoSystemTest extends PostgresTestContainerConfig {
                 Object.class, fichaId);
 
         HttpEntity<AvaliacaoSocioeconomicaRequestDTO> editarAvaliacao =
-                new HttpEntity<>(avaliacaoVazia(), headersPara(tokenB));
+                new HttpEntity<>(avaliacao(true, null), headersPara(tokenB));
         restTemplate.exchange("/api/fichas/{id}/avaliacao-socioeconomica", HttpMethod.PUT, editarAvaliacao,
                 Object.class, fichaId);
 
