@@ -5,10 +5,12 @@ import com.azizaid.hub.dto.response.AcolhimentoEquipeResponseDTO;
 import com.azizaid.hub.model.AcolhimentoEquipe;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.repository.AcolhimentoEquipeRepository;
+import com.azizaid.hub.util.RetratoAuditoria;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
+import java.util.List;
 
 @Service
 public class AcolhimentoEquipeService {
@@ -43,10 +45,8 @@ public class AcolhimentoEquipeService {
                     return novo;
                 });
 
-        if (acolhimento.getId() != null) {
-            Long donoId = acolhimento.getCriadoPorId() != null ? acolhimento.getCriadoPorId() : acolhimento.getUltimoEditorId();
-            entityAuditService.registrarSeCrossUser("AcolhimentoEquipe", acolhimento.getId(), donoId, ficha.getId());
-        }
+        boolean novo = acolhimento.getId() == null;
+        List<Object> antes = retrato(acolhimento);
 
         acolhimento.setNumeroProcessoMpu(dto.numeroProcessoMpu());
         acolhimento.setDataReuniaoAcolhimento(dto.dataReuniaoAcolhimento());
@@ -65,6 +65,21 @@ public class AcolhimentoEquipeService {
         acolhimento.setObservacoesRelevantes(dto.observacoesRelevantes());
         acolhimento.setResponsavelAcolhimentoJuridico(dto.responsavelAcolhimentoJuridico());
 
-        return AcolhimentoEquipeResponseDTO.from(acolhimentoEquipeRepository.save(acolhimento));
+        AcolhimentoEquipe salvo = acolhimentoEquipeRepository.save(acolhimento);
+        Long donoId = salvo.getCriadoPorId() != null ? salvo.getCriadoPorId() : salvo.getUltimoEditorId();
+        entityAuditService.registrarSalvamentoDeParte("AcolhimentoEquipe", salvo.getId(), donoId, ficha,
+                novo, antes, retrato(salvo));
+        return AcolhimentoEquipeResponseDTO.from(salvo);
+    }
+
+    // Campos gravados por salvar(). Ele não mexe em nenhum campo da ficha.
+    private List<Object> retrato(AcolhimentoEquipe a) {
+        return RetratoAuditoria.de(a.getNumeroProcessoMpu(), a.getDataReuniaoAcolhimento(),
+                a.getServidorResponsavel(), a.getTiposViolencia(), a.getTipoViolenciaOutraDescricao(),
+                a.getFrequenciaViolencia(), a.getMedidasProtetivasAnteriores(), a.getAmeacasRelatadas(),
+                a.getNecessidadeAtendimentoMedicoImediato(), a.getAcompanhamentoSaudeMentalEmCurso(),
+                a.getAcompanhamentoSaudeMentalLocal(), a.getDependenteSofreuViolencia(),
+                a.getDependentePrecisaAuxilioMedico(), a.getCategoriaClassificacao(), a.getObservacoesRelevantes(),
+                a.getResponsavelAcolhimentoJuridico());
     }
 }

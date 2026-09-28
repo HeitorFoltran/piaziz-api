@@ -5,8 +5,11 @@ import com.azizaid.hub.dto.response.HistoricoAtendimentoResponseDTO;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.model.HistoricoAtendimento;
 import com.azizaid.hub.repository.HistoricoAtendimentoRepository;
+import com.azizaid.hub.util.RetratoAuditoria;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class HistoricoAtendimentoService {
@@ -41,10 +44,8 @@ public class HistoricoAtendimentoService {
                     return novo;
                 });
 
-        if (historico.getId() != null) {
-            Long donoId = historico.getCriadoPorId() != null ? historico.getCriadoPorId() : historico.getUltimoEditorId();
-            entityAuditService.registrarSeCrossUser("HistoricoAtendimento", historico.getId(), donoId, ficha.getId());
-        }
+        boolean novo = historico.getId() == null;
+        List<Object> antes = retrato(historico);
 
         historico.setJaProcurouServico(dto.jaProcurouServico());
         historico.setServicoProcuradoQualOnde(dto.servicoProcuradoQualOnde());
@@ -56,6 +57,17 @@ public class HistoricoAtendimentoService {
         historico.setResolveuSituacao(dto.resolveuSituacao());
         historico.setReacaoAgressor(dto.reacaoAgressor());
 
-        return HistoricoAtendimentoResponseDTO.from(historicoAtendimentoRepository.save(historico));
+        HistoricoAtendimento salvo = historicoAtendimentoRepository.save(historico);
+        Long donoId = salvo.getCriadoPorId() != null ? salvo.getCriadoPorId() : salvo.getUltimoEditorId();
+        entityAuditService.registrarSalvamentoDeParte("HistoricoAtendimento", salvo.getId(), donoId, ficha,
+                novo, antes, retrato(salvo));
+        return HistoricoAtendimentoResponseDTO.from(salvo);
+    }
+
+    // Campos gravados por salvar(). Ele não mexe em nenhum campo da ficha.
+    private List<Object> retrato(HistoricoAtendimento h) {
+        return RetratoAuditoria.de(h.getJaProcurouServico(), h.getServicoProcuradoQualOnde(), h.getEmFilaEspera(),
+                h.getFilaEsperaQual(), h.getJaPediuAjudaJusticaPolicia(), h.getJusticaPoliciaQual(),
+                h.getComoFoiAtendimento(), h.getResolveuSituacao(), h.getReacaoAgressor());
     }
 }

@@ -302,6 +302,8 @@ CREATE TABLE entity_audit_log (
     dono_id        BIGINT       NOT NULL,
     timestamp      TIMESTAMP    NOT NULL,
     resumo         VARCHAR(300),
+    acao           VARCHAR(20),
+    detalhe        VARCHAR(120),
     CONSTRAINT fk_entity_audit_log_editor
         FOREIGN KEY (editor_id) REFERENCES profissional (id),
     CONSTRAINT fk_entity_audit_log_dono

@@ -5,8 +5,11 @@ import com.azizaid.hub.dto.response.AvaliacaoSocioeconomicaResponseDTO;
 import com.azizaid.hub.model.AvaliacaoSocioeconomica;
 import com.azizaid.hub.model.Ficha;
 import com.azizaid.hub.repository.AvaliacaoSocioeconomicaRepository;
+import com.azizaid.hub.util.RetratoAuditoria;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class AvaliacaoSocioeconomicaService {
@@ -41,10 +44,8 @@ public class AvaliacaoSocioeconomicaService {
                     return nova;
                 });
 
-        if (avaliacao.getId() != null) {
-            Long donoId = avaliacao.getCriadoPorId() != null ? avaliacao.getCriadoPorId() : avaliacao.getUltimoEditorId();
-            entityAuditService.registrarSeCrossUser("AvaliacaoSocioeconomica", avaliacao.getId(), donoId, ficha.getId());
-        }
+        boolean nova = avaliacao.getId() == null;
+        List<Object> antes = retrato(avaliacao);
 
         avaliacao.setTemRenda(dto.temRenda());
         avaliacao.setValorRenda(dto.valorRenda());
@@ -78,6 +79,24 @@ public class AvaliacaoSocioeconomicaService {
         avaliacao.setMedicamentoQuais(dto.medicamentoQuais());
         avaliacao.setAcessoMedicamentos(dto.acessoMedicamentos());
 
-        return AvaliacaoSocioeconomicaResponseDTO.from(avaliacaoSocioeconomicaRepository.save(avaliacao));
+        AvaliacaoSocioeconomica salva = avaliacaoSocioeconomicaRepository.save(avaliacao);
+        Long donoId = salva.getCriadoPorId() != null ? salva.getCriadoPorId() : salva.getUltimoEditorId();
+        entityAuditService.registrarSalvamentoDeParte("AvaliacaoSocioeconomica", salva.getId(), donoId, ficha,
+                nova, antes, retrato(salva));
+        return AvaliacaoSocioeconomicaResponseDTO.from(salva);
+    }
+
+    // Campos gravados por salvar(). Ele não mexe em nenhum campo da ficha.
+    private List<Object> retrato(AvaliacaoSocioeconomica a) {
+        return RetratoAuditoria.de(a.getTemRenda(), a.getValorRenda(), a.getPessoasDependemRenda(),
+                a.getOrigemRenda(), a.getTrabalhoFormal(), a.getRendaSuficiente(), a.getTrabalhandoAtualmente(),
+                a.getOndeTrabalha(), a.getProblemaSaudeAtrapalhaTrabalho(), a.getProblemaSaudeQual(),
+                a.getSituacaoFamiliarAtrapalhaTrabalho(), a.getSituacaoFamiliarQual(), a.getDesejaTrabalhar(),
+                a.getPeriodoDesejado(), a.getSabeLer(), a.getNivelEscrita(), a.getNivelEscolaridade(),
+                a.getEscolaridadeDetalhe(), a.getFezCursoProfissionalizante(), a.getCursoProfissionalizanteQual(),
+                a.getDesejaAuxilioCeebja(), a.getDesejaCursoSenai(), a.getAreaCursoSenai(), a.getTemRedeApoio(),
+                a.getPrecisaAjudaMoradia(), a.getTemOQueComer(), a.getAcompanhamentoMedico(),
+                a.getPrecisaAjudaTratamentoMedico(), a.getUsoContinuoMedicamento(), a.getMedicamentoQuais(),
+                a.getAcessoMedicamentos());
     }
 }
