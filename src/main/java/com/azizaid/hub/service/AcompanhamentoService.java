@@ -58,6 +58,7 @@ public class AcompanhamentoService {
                     ficha.getStatus() != null ? ficha.getStatus().name() : null,
                     ficha.getDataAtualizacao(),
                     ficha.getDataCriacao(),
+                    ficha.getCriadoPorId(),
                     tipos
             ));
         }
