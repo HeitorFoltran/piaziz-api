@@ -3,13 +3,19 @@ package com.azizaid.hub.dto.request;
 import com.azizaid.hub.model.enums.NivelEscolaridade;
 import com.azizaid.hub.model.enums.NivelEscrita;
 import com.azizaid.hub.model.enums.PeriodoTrabalho;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
 public record AvaliacaoSocioeconomicaRequestDTO(
         Boolean temRenda,
+
+        @PositiveOrZero(message = "valorRenda não pode ser negativo")
         BigDecimal valorRenda,
+
+        @Min(value = 0, message = "pessoasDependemRenda não pode ser negativo")
         Integer pessoasDependemRenda,
 
         @Size(max = 200, message = "origemRenda deve ter no máximo 200 caracteres")

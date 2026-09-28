@@ -25,6 +25,7 @@ public record FichaRequestDTO(
         @Size(max = 14, message = "cpf deve ter no máximo 14 caracteres")
         String cpf,
 
+        @Min(value = 0, message = "idade não pode ser negativa")
         Integer idade,
 
         @Size(max = 20, message = "telefone deve ter no máximo 20 caracteres")
@@ -33,6 +34,7 @@ public record FichaRequestDTO(
         @Size(max = 40, message = "estadoCivil deve ter no máximo 40 caracteres")
         String estadoCivil,
 
+        @Min(value = 0, message = "pessoasDependentes não pode ser negativo")
         Integer pessoasDependentes,
 
         @Size(max = 120, message = "idadeFilhos deve ter no máximo 120 caracteres")
@@ -47,8 +49,12 @@ public record FichaRequestDTO(
         @Size(max = 150, message = "tipoMoradiaOutraDescricao deve ter no máximo 150 caracteres")
         String tipoMoradiaOutraDescricao,
 
+        @Min(value = 0, message = "qtdMoradores não pode ser negativa")
         Integer qtdMoradores,
+
+        @Min(value = 0, message = "qtdFilhos não pode ser negativa")
         Integer qtdFilhos,
+
         OndeMoramFilhos ondeMoramFilhos,
         SupervisaoFilhos supervisaoFilhos,
         Set<VagaNecessaria> vagasNecessarias,

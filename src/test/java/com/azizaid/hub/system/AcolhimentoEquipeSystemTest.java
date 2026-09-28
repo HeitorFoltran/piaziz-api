@@ -92,4 +92,36 @@ class AcolhimentoEquipeSystemTest extends PostgresTestContainerConfig {
         assertThat(a.sugereAssistenciaEducacionalQual()).isNull();
         assertThat(a.sugereOutro()).isEqualTo("Defensoria Pública");
     }
+
+    @Test
+    void put_comAmeacasRelatadasMaiorQueAColuna_retorna400EmVezDe500() {
+        String token = persistirComToken(profissionalRepository, jwtService, PapelProfissional.PADRAO);
+        Long fichaId = criarFicha(token, "93288040786");
+        AcolhimentoEquipeRequestDTO dto = new AcolhimentoEquipeRequestDTO(null, null, null, Set.of(), null, null,
+                null, "a".repeat(1001), null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null);
+
+        ResponseEntity<String> resposta = put(dto, token, fichaId, String.class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(resposta.getBody()).contains("ameacasRelatadas");
+    }
+
+    @Test
+    void postFicha_comIdadeNegativa_retorna400() {
+        String token = persistirComToken(profissionalRepository, jwtService, PapelProfissional.PADRAO);
+        FichaRequestDTO b = construirDtoValido("23862551156");
+        FichaRequestDTO dto = new FichaRequestDTO(b.numeroCaso(), b.nome(), b.cpf(), -1, b.telefone(),
+                b.estadoCivil(), b.pessoasDependentes(), b.idadeFilhos(), b.nivelSeguranca(), b.tipoMoradia(),
+                b.tipoMoradiaOutraDescricao(), b.qtdMoradores(), b.qtdFilhos(), b.ondeMoramFilhos(),
+                b.supervisaoFilhos(), b.vagasNecessarias(), b.necessidadesImediatas(),
+                b.necessidadeOutraDescricao(), b.status());
+
+        ResponseEntity<String> resposta = restTemplate.postForEntity("/api/fichas",
+                new HttpEntity<>(dto, headersPara(token)), String.class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(resposta.getBody()).contains("idade não pode ser negativa");
+    }
 }
