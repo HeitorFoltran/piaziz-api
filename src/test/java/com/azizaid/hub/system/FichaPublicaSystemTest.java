@@ -182,7 +182,7 @@ class FichaPublicaSystemTest extends PostgresTestContainerConfig {
         FichaRequestDTO fichaDto = new FichaRequestDTO(
                 "2024/999999", "Carla Pereira", "16899622084", 30, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                StatusFicha.ENCERRADO);
+                StatusFicha.ARQUIVADO);
         FichaPublicaRequestDTO submissaoDto = new FichaPublicaRequestDTO(fichaDto, null, null, null);
         restTemplate.postForEntity("/api/ficha-publica/{token}", submissaoDto,
                 FichaPublicaSubmissaoResponseDTO.class, token);

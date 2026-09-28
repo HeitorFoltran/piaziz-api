@@ -71,8 +71,8 @@ class EncaminhamentoServiceTest {
     }
 
     @Test
-    void criar_comFichaEncerrada_lancaExcecaoENaoSalva() {
-        Ficha ficha = construirFichaComStatus(StatusFicha.ENCERRADO);
+    void criar_comFichaArquivada_lancaExcecaoENaoSalva() {
+        Ficha ficha = construirFichaComStatus(StatusFicha.ARQUIVADO);
         when(fichaService.buscarEntidade(1L)).thenReturn(ficha);
 
         EncaminhamentoRequestDTO dto = construirEncaminhamentoDtoValido(2L);

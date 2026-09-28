@@ -34,9 +34,9 @@ class EncaminhamentoRepositoryIT extends PostgresTestContainerConfig {
     ServicoRepository servicoRepository;
 
     @Test
-    void criar_comFichaEncerrada_lancaExcecaoENaoPersiste() {
+    void criar_comFichaArquivada_lancaExcecaoENaoPersiste() {
         FichaResponseDTO ficha = fichaService.criar(construirDtoValido("55566677720"));
-        fichaService.atualizarStatus(ficha.id(), StatusFicha.ENCERRADO);
+        fichaService.atualizarStatus(ficha.id(), StatusFicha.ARQUIVADO);
 
         Servico servico = servicoRepository.save(Servico.builder().nome("Serviço Teste").build());
         EncaminhamentoRequestDTO dto = construirEncaminhamentoDtoValido(servico.getId());

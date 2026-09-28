@@ -43,7 +43,7 @@ public class EncaminhamentoService {
     public EncaminhamentoResponseDTO criar(Long fichaId, EncaminhamentoRequestDTO dto) {
         Ficha ficha = fichaService.buscarEntidade(fichaId);
 
-        if (ficha.getStatus() == StatusFicha.ENCERRADO) {
+        if (ficha.getStatus() == StatusFicha.ARQUIVADO) {
             throw new IllegalArgumentException(
                     "Não é possível registrar encaminhamento em um acompanhamento arquivado");
         }

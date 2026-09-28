@@ -3,7 +3,7 @@ package com.azizaid.hub.model.enums;
 public enum StatusFicha {
     ATIVO("Ativo"),
     PAUSADO("Pausado"),
-    ENCERRADO("Arquivado");
+    ARQUIVADO("Arquivado");
 
     private final String label;
 
