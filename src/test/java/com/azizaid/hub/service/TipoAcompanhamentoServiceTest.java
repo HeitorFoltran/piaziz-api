@@ -13,6 +13,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -72,5 +73,28 @@ class TipoAcompanhamentoServiceTest {
 
         verify(tipoAcompanhamentoRepository, never()).existsByNomeIgnoreCase(any());
         verify(tipoAcompanhamentoRepository).save(any(TipoAcompanhamento.class));
+    }
+
+    @Test
+    void excluir_semUso_apaga() {
+        TipoAcompanhamento tipo = TipoAcompanhamento.builder().id(1L).nome("Sem uso").build();
+        when(tipoAcompanhamentoRepository.buscarParaExclusao(1L)).thenReturn(Optional.of(tipo));
+
+        tipoAcompanhamentoService.excluir(1L);
+
+        verify(tipoAcompanhamentoRepository).delete(tipo);
+    }
+
+    @Test
+    void excluir_atribuidoACaso_lancaExcecaoENaoApaga() {
+        TipoAcompanhamento tipo = TipoAcompanhamento.builder().id(1L).nome("Em uso").build();
+        when(tipoAcompanhamentoRepository.buscarParaExclusao(1L)).thenReturn(Optional.of(tipo));
+        when(tipoAcompanhamentoRepository.contarFichas(1L)).thenReturn(2L);
+
+        IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
+                () -> tipoAcompanhamentoService.excluir(1L));
+
+        assertTrue(erro.getMessage().contains("atribuído a 2 caso(s)"));
+        verify(tipoAcompanhamentoRepository, never()).delete(any());
     }
 }

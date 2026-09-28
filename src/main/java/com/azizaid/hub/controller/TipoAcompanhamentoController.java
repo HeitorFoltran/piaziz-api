@@ -1,6 +1,7 @@
 package com.azizaid.hub.controller;
 
 import com.azizaid.hub.dto.request.TipoAcompanhamentoRequestDTO;
+import com.azizaid.hub.dto.response.TipoAcompanhamentoCadastroDTO;
 import com.azizaid.hub.dto.response.TipoAcompanhamentoResponseDTO;
 import com.azizaid.hub.service.TipoAcompanhamentoService;
 import jakarta.validation.Valid;
@@ -23,7 +24,7 @@ public class TipoAcompanhamentoController {
     }
 
     @GetMapping
-    public List<TipoAcompanhamentoResponseDTO> listar() {
+    public List<TipoAcompanhamentoCadastroDTO> listar() {
         return tipoAcompanhamentoService.listar();
     }
 
@@ -38,5 +39,11 @@ public class TipoAcompanhamentoController {
             @PathVariable Long id,
             @Valid @RequestBody TipoAcompanhamentoRequestDTO dto) {
         return tipoAcompanhamentoService.atualizar(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+        tipoAcompanhamentoService.excluir(id);
+        return ResponseEntity.noContent().build();
     }
 }

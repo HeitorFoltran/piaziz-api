@@ -11,6 +11,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -97,5 +98,45 @@ class ServicoServiceTest {
 
         assertThat(resposta.nome()).isEqualTo("CRAS");
         verify(servicoRepository, never()).existsByNomeIgnoreCase(any());
+    }
+
+    @Test
+    void excluir_semUso_apaga() {
+        Servico servico = Servico.builder().id(1L).nome("Sem uso").build();
+        when(servicoRepository.buscarParaExclusao(1L)).thenReturn(Optional.of(servico));
+
+        servicoService.excluir(1L);
+
+        verify(servicoRepository).delete(servico);
+    }
+
+    @Test
+    void excluir_comEncaminhamentoOuProfissional_lancaExcecaoENaoApaga() {
+        Servico servico = Servico.builder().id(1L).nome("Em uso").build();
+        when(servicoRepository.buscarParaExclusao(1L)).thenReturn(Optional.of(servico));
+        when(servicoRepository.contarEncaminhamentos(1L)).thenReturn(3L);
+        when(servicoRepository.contarProfissionais(1L)).thenReturn(1L);
+
+        IllegalArgumentException erro = assertThrows(IllegalArgumentException.class, () -> servicoService.excluir(1L));
+
+        assertThat(erro.getMessage()).contains("3 encaminhamento(s) e 1 profissional(is)");
+        verify(servicoRepository, never()).delete(any());
+    }
+
+    @Test
+    void excluir_inexistente_lancaNaoEncontrado() {
+        when(servicoRepository.buscarParaExclusao(9L)).thenReturn(Optional.empty());
+
+        assertThrows(RecursoNaoEncontradoException.class, () -> servicoService.excluir(9L));
+    }
+
+    @Test
+    void listar_marcaQuemEstaEmUso() {
+        when(servicoRepository.findAll()).thenReturn(List.of(
+                Servico.builder().id(1L).nome("Usado").build(),
+                Servico.builder().id(2L).nome("Livre").build()));
+        when(servicoRepository.idsEmUso()).thenReturn(List.of(1L));
+
+        assertThat(servicoService.listar()).extracting("emUso").containsExactly(true, false);
     }
 }

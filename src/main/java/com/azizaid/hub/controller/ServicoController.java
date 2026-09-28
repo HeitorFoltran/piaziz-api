@@ -39,4 +39,10 @@ public class ServicoController {
             @Valid @RequestBody ServicoRequestDTO dto) {
         return servicoService.atualizar(id, dto);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+        servicoService.excluir(id);
+        return ResponseEntity.noContent().build();
+    }
 }

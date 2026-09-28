@@ -1,6 +1,7 @@
 package com.azizaid.hub.service;
 
 import com.azizaid.hub.dto.request.TipoAcompanhamentoRequestDTO;
+import com.azizaid.hub.dto.response.TipoAcompanhamentoCadastroDTO;
 import com.azizaid.hub.dto.response.TipoAcompanhamentoResponseDTO;
 import com.azizaid.hub.exception.RecursoNaoEncontradoException;
 import com.azizaid.hub.model.TipoAcompanhamento;
@@ -8,7 +9,9 @@ import com.azizaid.hub.repository.TipoAcompanhamentoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class TipoAcompanhamentoService {
@@ -20,9 +23,10 @@ public class TipoAcompanhamentoService {
     }
 
     @Transactional(readOnly = true)
-    public List<TipoAcompanhamentoResponseDTO> listar() {
+    public List<TipoAcompanhamentoCadastroDTO> listar() {
+        Set<Long> emUso = new HashSet<>(tipoAcompanhamentoRepository.idsEmUso());
         return tipoAcompanhamentoRepository.findAll().stream()
-                .map(TipoAcompanhamentoResponseDTO::from)
+                .map(t -> TipoAcompanhamentoCadastroDTO.from(t, emUso.contains(t.getId())))
                 .toList();
     }
 
@@ -48,5 +52,20 @@ public class TipoAcompanhamentoService {
 
         tipo.setNome(dto.nome());
         return TipoAcompanhamentoResponseDTO.from(tipoAcompanhamentoRepository.save(tipo));
+    }
+
+    // Só exclui tipo que não está em nenhum caso. Excluir um tipo em uso apagaria a atribuição dos
+    // casos em cascata (FK ON DELETE CASCADE), sem ninguém perceber.
+    @Transactional
+    public void excluir(Long id) {
+        TipoAcompanhamento tipo = tipoAcompanhamentoRepository.buscarParaExclusao(id)
+                .orElseThrow(() -> RecursoNaoEncontradoException.de("Tipo de acompanhamento", id));
+
+        long fichas = tipoAcompanhamentoRepository.contarFichas(id);
+        if (fichas > 0) {
+            throw new IllegalArgumentException("Não é possível excluir: o tipo está atribuído a "
+                    + fichas + " caso(s).");
+        }
+        tipoAcompanhamentoRepository.delete(tipo);
     }
 }
