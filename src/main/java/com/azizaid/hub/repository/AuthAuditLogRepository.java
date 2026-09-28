@@ -2,6 +2,7 @@ package com.azizaid.hub.repository;
 
 import com.azizaid.hub.model.AuthAuditLog;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -30,4 +31,8 @@ public interface AuthAuditLogRepository extends JpaRepository<AuthAuditLog, Long
     long contarFalhasRecentesDaConta(@Param("profissionalId") Long profissionalId,
                                      @Param("desde") LocalDateTime desde,
                                      @Param("motivoIgnorado") String motivoIgnorado);
+
+    @Modifying
+    @Query("UPDATE AuthAuditLog a SET a.ipAddress = NULL WHERE a.timestamp < :limite AND a.ipAddress IS NOT NULL")
+    int limparIpAntesDe(@Param("limite") LocalDateTime limite);
 }

@@ -17,4 +17,8 @@ public interface FichaPendenteRepository extends JpaRepository<FichaPendente, Lo
     @Modifying
     @Query("DELETE FROM FichaPendente f WHERE f.status = :status AND f.dataRevisao < :limite")
     int apagarRevisadasAntesDe(@Param("status") StatusFichaPendente status, @Param("limite") LocalDateTime limite);
+
+    @Modifying
+    @Query("UPDATE FichaPendente f SET f.ipSubmissao = NULL WHERE f.dataSubmissao < :limite AND f.ipSubmissao IS NOT NULL")
+    int limparIpAntesDe(@Param("limite") LocalDateTime limite);
 }
